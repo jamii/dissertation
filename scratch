@@ -1,0 +1,36 @@
+Update types are as follows
+
+1 Push: Alice knows Bob and Carol. Alice pushes Bob's address to Carol.
+
+2 Push: Alice knows Bob. Alice pushes Alice's address to Bob.
+
+3 Pull: Alice knows Bob. Bob knows Carol. Alice requests an address from Bob. Bob sends Carol's address to Alice.
+
+4 Global pull: Alice requests an address from a seed server or from megacache.
+
+5 Forget: Alice forgets Bob's address.
+
+Effects on degree are
+
+1 High in-degree grants higher out-degree. 
+
+2 High in-degree grants higher out-degree.
+
+3 High in-degree grants higher in-degree.
+
+4 Low in-degree can be raised
+
+5 High out-degree's and in-degree's decay faster
+
+So
+
+1 fixes star topologies
+
+2 stops people being disconnected by in-degree
+
+3 ...
+
+4 stops people being disconnected by total 
+
+5 reduces links, lowers memory usage
+
