@@ -1,0 +1,16 @@
+const int Time;
+
+R{"time"}=? [F "total_failure"]
+
+R{"density"}=? [I=Time]
+
+R{"indegree"}=? [I=Time]
+
+R{"outdegree"}=? [I=Time]
+
+R{"indegree"}=? [S]
+
+R{"outdegree"}=? [S]
+
+R{"density"}=? [S]
+
