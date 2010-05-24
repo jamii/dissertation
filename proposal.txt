@@ -1,0 +1,67 @@
+Modelling the BuddyCast epidemic protocol
+
+Tribler[1] is an experimental decentralised filesharing network developed as part of the EU P2P-NEXT project [2]. It uses the BuddyCast[3] gossip protocol to a) form an overlay network based on the similarity of peer download histories and b) maintain a shared, global database which is used by a number of Tribler subsystems including content search, recommendations and reputation management.
+
+Background
+
+In a gossip based p2p protocol, peers actively and continuously exchange information (gossip) with each other. This communication occurs over a probabilistic, unstructured overlay network. The overlay is in turn built using some peer discovery service. Typically the peer discovery service is assumed to choose uniformly at random between available peers. A more recent innovation is to implement the peer discovery service by exchanging peer addresses in the gossip layer. [4] and [5] discuss a general framework for comparing such systems, in terms of choices of algorithms for peer selection, gossip and overlay building. [5] also presents simulated results for a variety of different choices and notes that in none of the simulations did the peer discovery service return a uniform selection of peers.
+
+The emergent behavior of gossip based protocols proves to be very sensitive to even small changes in these choices of algorithms [6] [7]. Because of this sensitivity and the relative simplicity of gossip based protocols it appears that more formal methods of analysis are more useful than simulation. A survey of formal approaches to gossiping [8] concludes that model checking and analytic approaches are viable but largely untested. More recently a number of analytic models have been proposed (eg [9,10,11])
+
+Proposed work
+
+BuddyCast differs from the algorithms studied above in a number of ways. The most significant is the method for peer selection in the overlay. Choices are made from the pool of known peers by a number of criteria including the similarity of the peer's download history. This same similarity metric is also used to make recommendations to the user so there is a fundamental tension between optimising the metric for good recommendations and optimising it for an efficient overlay topology. Whilst experimental results indicate that the use of a similarity metric improves performance there is no existing model for understanding or predicting the effect of different metrics.
+
+The questions I will investigate are:
+    How does BuddyCast's method of peer selection improve efficiency compared to simpler algorithms (eg random choice)?
+    How does the choice of similarity metric affect the efficiency?
+    Is it possible to find a metric that makes good recommendations and produces an efficient topology?
+
+Method
+
+The first step is to survey existing analytic models and choose one which can be extended to handle the BuddyCast protocol.
+
+Given that Tribler is a file sharing network a natural measure of efficiency is the expectation and variance of the time taken to find a file. Obviously this depends on the distribution of searches within different groups of users. 
+
+Since the BuddyCast protocol uses peer similarity to construct the overlay, any model of the protocol must consider the behaviour of the users. The Tribler group at Delft university have offered to share a database of network traces gathered from users in the wild which will be vital for constructing a statistical model of the users.
+
+The same group have also built a detailed simulator for Tribler which can be used to verify the predictions of the theoretical model.
+
+Timetable
+
+Background reading (2 weeks)
+Analysis of user statistics from network traces and design of a model for user behaviour (2-3 weeks)
+Design of a model for the BuddyCast protocol (2-3 weeks)
+Analysis of results and comparison to the Tribler simulator and to existing network traces (2-3 weeks)
+Writeup (4 weeks)
+
+References
+
+[1] J.A. Pouwelse and P. Garbacki and J. Wang and A. Bakker and J.
+Yang and A. Iosup and D.H.J. Epema and M. Reinders and M. van Steen
+and H.J. Sips (2008). Tribler: A social-based peer-to-peer system.
+Concurrency and Computation: Practice and Experience 20:127-138.
+
+[2] http://www.p2p-next.org/
+
+[3] J.A. Pouwelse and J. Yang and M. Meulpolder and D.H.J. Epema and
+H.J. Sips (2008). Buddycast: an Operational Peer-to-Peer Epidemic
+Protocol Stack. In G.J.M. Smit, D.H.J. Epema, and M.S. Lew (Eds.).
+Proc. of the 14th Annual Conf. of the Advanced School for Computing
+and Imaging, pp. 200-205. ASCI
+
+[4] Jelasity, M., Voulgaris, S., Guerraoui, R., Kermarrec, A., and van Steen, M. 2007. Gossip-based peer sampling. ACM Trans. Comput. Syst. 25, 3 (Aug. 2007), 8.
+
+[5] Jelasity, M., Guerraoui, R., Kermarrec, A., and van Steen, M. 2004. The peer sampling service: experimental evaluation of unstructured gossip-based implementations. In Proceedings of the 5th ACM/IFIP/USENIX international Conference on Middleware (Toronto, Canada, October 18 - 22, 2004).
+
+[6] Kermarrec, A. and van Steen, M. 2007. Gossiping in distributed systems. SIGOPS Oper. Syst. Rev. 41, 5 (Oct. 2007), 2-7. 
+
+[7] Alvisi, L., Doumen, J., Guerraoui, R., Koldehofe, B., Li, H., van Renesse, R., and Tredan, G. 2007. How robust are gossip-based communication protocols?. SIGOPS Oper. Syst. Rev. 41, 5 (Oct. 2007), 14-18.
+
+[8] Bakhshi, R., Bonnet, F., Fokkink, W., and Haverkort, B. 2007. Formal analysis techniques for gossiping protocols. SIGOPS Oper. Syst. Rev. 41, 5 (Oct. 2007), 28-36. 
+
+[9] Fernandess, Y., Fernández, A., and Monod, M. 2007. A generic theoretical framework for modeling gossip-based algorithms. SIGOPS Oper. Syst. Rev. 41, 5 (Oct. 2007), 19-27.
+
+[10] Bakhshi, R., Cloth, L., Fokkink, W., and Haverkort, B. R. 2008. MeanField analysis for the evaluation of gossip protocols. SIGMETRICS Perform. Eval. Rev. 36, 3 (Nov. 2008), 31-39. 
+
+[11] Krieger, T., Riedl, M., Schuster, J., and Siegle, M. 2008. A view-probability-matrix approach to the modelling of gossiping protocols. SIGMETRICS Perform. Eval. Rev. 36, 3 (Nov. 2008), 23-30. 

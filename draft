@@ -1,0 +1,48 @@
+explain gossip nets
+  previous work
+  uses
+    pss
+    broadcast
+    extensions to semantic nets
+  examples in the wild
+  running example (cyclon?)
+statement of intent / motivation
+  point is that these networks are 
+    robust to random failure 
+    not well understood 
+    possibly susceptible to coordinated attack
+      eg cyclon poisoning
+  want to build other services on top, require better knowledge of behaviour
+  emergent behaviour means that experimental results are not enough to explore design space
+  cf arrg for examples of theoretical results failing to meet reality
+    want to understand why this happens and what can be done to improve it
+  but difficult to model analytically - why?
+single node metrics
+  justifications 
+    easy to observe in real life
+    may allow ignoring dependence between nodes
+    only really care about single user experience?
+  indegree - load balancing 
+  arrival times - randomness of network
+    many algorithms assume a uniform peer selection algorithm
+  for semantic nets, search distance
+  for semantic nets, quality of recommendations
+simple models
+scheduling - random vs inorder
+  fixed intervals causes ordering and non-markovian behaviour
+  random scheduling, counterintuitively, is simpler to model
+  cf previous model which had to assume instantaneous exchanges and had hard maths
+  exponential intervals lead to a real-time markov chain which is easy to reason about
+  demonstrate model by reproducing graphs from previous paper
+extend model
+  model poisoning?
+  block lists
+  random failure
+  backup cache
+  nat traversal (ie systematic failure)
+  up/down times
+  semantic nets eg buddycast 2+
+summarise
+  gossip algorithms effective, hard to reason about
+  reasons why hard to reason about
+  suggestions for model-able algorithms
