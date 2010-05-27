@@ -3,6 +3,7 @@ ctmc
 const double cache;
 const double push_self;
 const double push;
+const double pull;
 
 module nodes
        edge_0_1 : [0..1] init 1;
@@ -40,6 +41,14 @@ module nodes
        [] (push>0) & (edge_0_1=1) & (edge_0_2=1) -> push:(edge_1_2'=1) + push:(edge_2_1'=1);
        [] (push>0) & (edge_1_0=1) & (edge_1_2=1) -> push:(edge_0_2'=1) + push:(edge_2_0'=1);
        [] (push>0) & (edge_2_1=1) & (edge_2_0=1) -> push:(edge_1_0'=1) + push:(edge_0_1'=1);
+
+       // Pull
+       [] (pull>0) & (edge_0_1=1) & (edge_1_2=1) -> pull:(edge_0_2'=1);
+       [] (pull>0) & (edge_0_2=1) & (edge_2_1=1) -> pull:(edge_0_1'=1);
+       [] (pull>0) & (edge_1_2=1) & (edge_2_0=1) -> pull:(edge_1_0'=1);
+       [] (pull>0) & (edge_1_0=1) & (edge_0_2=1) -> pull:(edge_1_2'=1);
+       [] (pull>0) & (edge_2_1=1) & (edge_1_0=1) -> pull:(edge_2_0'=1);
+       [] (pull>0) & (edge_2_0=1) & (edge_0_1=1) -> pull:(edge_2_1'=1);
 endmodule
 
 rewards "time"
