@@ -1,0 +1,37 @@
+ctmc
+
+const double forget = 1.0;
+const double cache;
+const double push_self;
+const double push;
+const double pull;
+
+const int n = 10;
+
+module node
+       neither : [0..n] init n;
+       in : [0..n] init 0;
+       out : [0..n] init 0;
+       both : [0..n] init 0;
+
+       // Forget
+       [] (forget>0)&(both>0)&(out<n) -> (forget*both):(both'=both-1)&(out'=out+1);
+       [] (forget>0)&(both>0)&(in<n) -> (forget*both):(both'=both-1)&(in'=in+1);
+       [] (forget>0)&(in>0)&(neither<n) -> (forget*in):(in'=in-1)&(neither'=neither+1);
+       [] (forget>0)&(out>0)&(neither<n) -> (forget*out):(out'=out-1)&(neither'=neither+1);
+       
+       // Cache
+       [] (cache>0)&(neither>0)&(out<n) -> (cache*neither):(neither'=neither-1)&(out'=out+1);
+       [] (cache>0)&(neither>0)&(in<n) -> (cache*neither):(neither'=neither-1)&(in'=in+1);
+       [] (cache>0)&(in>0)&(both<n) -> (cache*in):(in'=in-1)&(both'=both+1);
+       [] (cache>0)&(out>0)&(both<n) -> (cache*out):(out'=out-1)&(both'=both+1);
+
+       // Push self
+       [] (push_self>0)&(out>0)&(both<n) -> (push_self*out):(out'=out-1)&(both'=both+1);
+       [] (push_self>0)&(in>0)&(both<n) -> (push_self*in):(in'=in-1)&(both'=both+1);
+
+       // Push
+       [] (push>0)&(in>0)& -> (in*
+endmodule
+
+label "incorrect" = neither + in + out + both != n;
