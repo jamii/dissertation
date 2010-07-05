@@ -1,6 +1,6 @@
 -module(ctmc).
 
--export([start/2, interrupt/2]).
+-export([start/2, interrupt/2, get_state/1]).
 -export([behaviour_info/1]).
 
 -behaviour(gen_server).
@@ -23,6 +23,9 @@ start(Module, Args) ->
 interrupt(Ctmc, Interrupt) ->
     gen_server:cast(Ctmc, {interrupt, Interrupt}).
 
+get_state(Ctmc) ->
+    gen_server:call(Ctmc, get_state).
+
 % gen_server callbacks
 
 init([Module, Args]) ->
@@ -31,8 +34,9 @@ init([Module, Args]) ->
     {Next_event, Timeout} = next_event(Module, State),
     {ok, #ctmc{module=Module, state=State, next_event=Next_event}, Timeout}.
 
-handle_call(_Request, _From, _State) ->
-    undefined.
+handle_call(get_state, _From, #ctmc{module=Module, state=State}=Ctmc) ->
+    {Next_event, Timeout} = next_event(Module, State),
+    {reply, State, Ctmc#ctmc{next_event=Next_event}, Timeout}.
 
 handle_cast({interrupt, Interrupt}, #ctmc{module=Module, state=State}=Ctmc) ->
     State2 = Module:handle_interrupt(State, Interrupt),
