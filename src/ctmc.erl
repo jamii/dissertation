@@ -57,14 +57,15 @@ code_change(_OldVsn, State, _Extra) ->
 % internal functions
 
 next_event(Module, State) ->
-    Events =  Module:events(State),
+    random:seed(now()),
+    Events = [{Event, Rate} || {Event, Rate} <- Module:events(State), Rate > 0],
     Total = lists:sum([Rate || {_Event, Rate} <- Events]),
     case choose_event(Total * random:uniform(), Events) of
 	no_event -> {no_event, infinity};
 	{event, Event} -> {Event, round(1000 * exponential(Total))}
     end.
 
-% rounding errors may occasionally cause spurious null events
+% rounding errors may occasionally cause spurious no_event
 % normally should only happen when the event list is empty
 choose_event(_P, []) ->
     no_event;
