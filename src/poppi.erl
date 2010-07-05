@@ -44,9 +44,7 @@ events(#poppi{peers=Peers}) ->
       {cache, ?CACHE},
       [{{bump, Peer}, ?BUMP} || Peer <- Peers],
       [{{pull, Peer}, ?PULL} || Peer <- Peers],
-      [[ {{push, Peer1, Peer2}, ?PUSH} 
-        || Peer1 <- Peers, Peer1 /= Peer2] 
-        || Peer2 <- Peers]]).
+      [{{push, Peer}, ?PUSH} || Peer <- Peers]]).
 
 handle_event(#poppi{peers=Peers}=Poppi, {forget, Peer}) when is_pid(Peer) ->
     log("Forgetting ~w from ~w~n", [Peer, self()]),
@@ -66,9 +64,14 @@ handle_event(Poppi, {pull, Peer}) when is_pid(Peer) ->
     ctmc:interrupt(Peer, {pull, self()}),
     Poppi;
 
-handle_event(Poppi, {push, Peer1, Peer2}) when is_pid(Peer1), is_pid(Peer2) ->
-    log("Sending push from ~w to ~w with ~w~n", [self(), Peer1, Peer2]),
-    ctmc:interrupt(Peer1, {push, Peer2}),
+handle_event(#poppi{peers=Peers}=Poppi, {push, Peer1}) when is_pid(Peer1) ->
+    case choice(lists:delete(Peer1,Peers)) of
+        none ->
+            log("No candidate for push from ~w to ~w~n", [Peer1, self()]);
+        Peer2 ->
+            log("Sending push from ~w to ~w with ~w~n", [self(), Peer1, Peer2]),
+            ctmc:interrupt(Peer1, {push, Peer2})
+    end,
     Poppi.
 
 handle_interrupt(#poppi{peers=Peers}=Poppi, {bump, Peer}) when is_pid(Peer) ->
