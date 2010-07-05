@@ -1,6 +1,6 @@
 -module(poppi).
 
--export([start/0, start/1]).
+-export([start/0, start/1, start_many/2, start_star/1]).
 
 -behaviour(ctmc).
 -export([init/1, events/1, handle_event/2, handle_interrupt/2]).
@@ -23,6 +23,15 @@ start() ->
 start(Peers) when is_list(Peers) ->
     true = lists:all(fun is_pid/1, Peers),
     ctmc:start(?MODULE, [Peers]).
+
+start_many(N, Peers) ->
+    Nodes = [start(Peers) || _ <- lists:seq(1,N)],
+    {ok, [Node || {ok, Node} <- Nodes]}.
+
+start_star(N) ->
+    {ok, Hub} = start(),
+    {ok, Spokes} = start_many(N, [Hub]),
+    {ok, Hub, Spokes}.
 
 % ctmc callbacks
 
