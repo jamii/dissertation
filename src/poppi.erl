@@ -82,13 +82,12 @@ handle_interrupt(#poppi{peers=Peers}=Poppi, {pull, Peer1}) when is_pid(Peer1) ->
     log("Receiving pull from ~w to ~w~n", [Peer1, self()]),
     case choice(Peers) of
         none -> 
-            log("No candidate for pull from ~w to ~w~n", [Peer1, self()]),
-            Poppi;
+            log("No candidate for pull from ~w to ~w~n", [Peer1, self()]);
         {choice, Peer2} ->
             log("Sending push from ~w to ~w with ~w~n in response to pull", [self(), Peer1, Peer2]),
-            ctmc:interrupt(Peer1, {push, Peer2}),
-            Poppi
-    end;
+            ctmc:interrupt(Peer1, {push, Peer2})
+    end,
+    Poppi;
 
 handle_interrupt(#poppi{peers=Peers}=Poppi, {push, Peer}) when is_pid(Peer) ->
     log("Receiving push from ~w to ~w~n", [Peer, self()]),
