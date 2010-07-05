@@ -68,7 +68,7 @@ handle_event(#poppi{peers=Peers}=Poppi, {push, Peer1}) when is_pid(Peer1) ->
     case choice(lists:delete(Peer1,Peers)) of
         none ->
             log("No candidate for push from ~w to ~w~n", [Peer1, self()]);
-        Peer2 ->
+        {choice, Peer2} ->
             log("Sending push from ~w to ~w with ~w~n", [self(), Peer1, Peer2]),
             ctmc:interrupt(Peer1, {push, Peer2})
     end,
@@ -101,6 +101,6 @@ log(Format, Args) ->
 choice(List) ->
     case length(List) of
         0 -> none;
-        N -> lists:nth(random:uniform(N),List)
+        N -> {choice, lists:nth(random:uniform(N),List)}
     end.
              
