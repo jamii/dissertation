@@ -40,4 +40,6 @@ Script works
 
 Pull is awkward to sync because rate relies on non-local knowledge. Is pull needed in light of push_self?
 
-Fix push rates to match in full_model and model. Check that pushes can be assumed to be uniformly chosen.
+Fix push/pull rates to match in full_model and model. Check that pushes can be assumed to be uniformly chosen.
+
+Push is problematic, would like to remove it if possible.
