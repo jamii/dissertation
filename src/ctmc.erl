@@ -1,6 +1,6 @@
 -module(ctmc).
 
--export([start/2, interrupt/2, get_state/1, do_to_state/2, poll_state/3]).
+-export([start/2, interrupt/2, get_state/1, with_state/2, poll_state/3]).
 -export([behaviour_info/1]).
 
 -behaviour(gen_server).
@@ -26,11 +26,11 @@ interrupt(Ctmc, Interrupt) ->
 get_state(Ctmc) ->
     gen_server:call(Ctmc, get_state).
 
-do_to_state(Ctmc, F) ->
+with_state(Ctmc, F) ->
     F(get_state(Ctmc)).
 
 poll_state(Ctmc, Interval, F) ->
-    timer:apply_interval(Interval, ctmc, do_to_state, [Ctmc, F]).
+    timer:apply_interval(Interval, ctmc, with_state, [Ctmc, F]).
 
 % gen_server callbacks
 

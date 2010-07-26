@@ -1,11 +1,11 @@
 -module(poppi).
 
--export([start/0, start/1, start_many/2, start_star/1]).
+-export([default/1, start/0, start/1, start_many/2, start_star/1]).
 
 -behaviour(ctmc).
 -export([init/1, events/1, handle_event/2, handle_interrupt/2]).
 
--record(poppi, {peers}).
+-include(poppi).
 
 % event constants
 
@@ -17,34 +17,45 @@
 
 % api
 
+default_rates() ->
+    #rates{forget=0.01,
+	   pull=0.01,
+	   push=0.01,
+	   cache=0.01}.
+
 start() ->
-    start([]).
+    start(#poppi{peers=[], rates=default_rates()}).
 
-start(Peers) when is_list(Peers) ->
-    true = lists:all(fun is_pid/1, Peers),
-    ctmc:start(?MODULE, [Peers]).
+start(Poppi) ->
+    true = lists:all(fun is_pid/1, Poppi),
+    ctmc:start(?MODULE, [Poppi]).
 
-start_many(N, Peers) ->
-    Nodes = [start(Peers) || _ <- lists:seq(1,N)],
+start_many(N, Poppi) ->
+    Nodes = [start(Poppi) || _ <- lists:seq(1,N)],
     {ok, [Node || {ok, Node} <- Nodes]}.
 
-start_star(N) ->
-    {ok, Hub} = start(),
-    {ok, Spokes} = start_many(N, [Hub]),
+start_star(N, Rates) ->
+    {ok, Hub} = start(#poppi{peers=[], rates=Rates}),
+    Spoke = #poppi{peers=[Hub], rates=Rates},
+    {ok, Spokes} = start_many(N, Spoke),
     {ok, Hub, Spokes}.
 
 % ctmc callbacks
 
-init([Peers]) ->
-    #poppi{peers=Peers}.
+init(#poppi{}=Poppi) ->
+    Poppi.
 
-events(#poppi{peers=Peers}) ->
+events(#poppi{peers=Peers,
+	      rates=#rates{forget=Forget,
+			   pull=Pull,
+			   push=Push,
+			   cache=Cache}}) ->
     lists:flatten([
-      [{{forget, Peer}, ?FORGET} || Peer <- Peers],
-      {cache, ?CACHE},
-      [{{bump, Peer}, ?BUMP} || Peer <- Peers],
-      [{{pull, Peer}, ?PULL} || Peer <- Peers],
-      [{{push, Peer}, ?PUSH} || Peer <- Peers]]).
+      [{{forget, Peer}, Forget} || Peer <- Peers],
+      {cache, Cache},
+      [{{bump, Peer}, Bump} || Peer <- Peers],
+      [{{pull, Peer}, Pull} || Peer <- Peers],
+      [{{push, Peer}, Push} || Peer <- Peers]]).
 
 handle_event(#poppi{peers=Peers}=Poppi, {forget, Peer}) when is_pid(Peer) ->
     log("Forgetting ~w from ~w~n", [Peer, self()]),
