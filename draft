@@ -17,6 +17,8 @@ statement of intent / motivation
   cf arrg for examples of theoretical results failing to meet reality
     want to understand why this happens and what can be done to improve it
   but difficult to model analytically - why?
+
+
 single node metrics
   justifications 
     easy to observe in real life
@@ -27,22 +29,42 @@ single node metrics
     many algorithms assume a uniform peer selection algorithm
   for semantic nets, search distance
   for semantic nets, quality of recommendations
-simple models
 scheduling - random vs inorder
   fixed intervals causes ordering and non-markovian behaviour
   random scheduling, counterintuitively, is simpler to model
   cf previous model which had to assume instantaneous exchanges and had hard maths
   exponential intervals lead to a real-time markov chain which is easy to reason about
   demonstrate model by reproducing graphs from previous paper
-extend model
-  model poisoning?
+
+
+introduce new algorithm
+give global prism description
+give local prism description
+demonstrate equivalence
+  -- this is the unsolved bit
+  -- given thats its cs can probably just make a guess as to internode distributions and verify with implementation
+  -- probably best to do that for now and do the proof if i have time
+
+
+produce implementation
+verify theoretical results
+
+
+derive memory/bandwidth calculations
+  mention that serious implementation would require much more bandwidth, of course
+write search tool to find desired descriptions based on local prism description
+
+
+extend model (hah!)
+  backup cache
   block lists
   random failure
-  backup cache
   nat traversal (ie systematic failure)
   up/down times
   semantic nets eg buddycast 2+
-summarise
+
+
+conclusion
   gossip algorithms effective, hard to reason about
   reasons why hard to reason about
-  suggestions for model-able algorithms
+  produced an effective, tunable and easy to model/implement algorithm

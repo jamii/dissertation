@@ -43,3 +43,8 @@ Pull is awkward to sync because rate relies on non-local knowledge. Is pull need
 Fix push/pull rates to match in full_model and model. Check that pushes can be assumed to be uniformly chosen.
 
 Push is problematic, would like to remove it if possible.
+
+implement caching
+need to guess at model, check with implementation
+then write everything
+then go back to try proof again
