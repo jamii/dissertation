@@ -1,0 +1,81 @@
+\documentclass[a4paper,10pt]{article}
+
+\usepackage{ucs}
+\usepackage[utf8x]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{babel}
+\usepackage{fontenc}
+\usepackage[pdftex]{graphicx}
+
+\usepackage[dvips]{hyperref}
+
+\date{2010-08-23}
+
+\begin{document}
+ 
+have a special root node. every other node sends messages to it at a rate \lambda. by the merging property of the poisson process messages arrive at the root node at a rate n \lambda and the source of each arriving message is uniformly distributed amongst the nodes and chosen independently of all the other messages. so the root node now has the desired stream S_0, S_1 ... of IID uniform choices from the set of nodes. on receiving each message i from node S_i, the root node sends the address of S_{i-1} to S_i. simply dont reply to S_0. so each node N receives a stream of addresses N_0 ... = {S_{i-1} | S_i = N, i > 0}. we know that S is IID uniform thanks to the properties of the poisson process but it seems possible that this method of splitting the stream into n streams might lead to bias in the resulting streams. indeed, for each node N the peer selection N_0 is not uniformly distributed - it can never be equal to N.
+
+define T_i
+
+thm: for each node N the peer selections N_i are independent for i>=0 and uniformly distributed over Nodes for i>0
+split into 2 proofs
+
+proof:
+
+consider a node N
+
+define selection times T = {i | S_i = N, i >= 0}
+selections N_i = S_{T_i-1}
+
+indepence is straightforward
+
+P(N_i = M | N_j = n_j, j<i)
+= P(S_{T_i-1} = M | S_{T_j-1} = n_j, j<i)
+= P(S_{T_i-1} = M) since S is independent
+
+uniform distribution is a little more complicated
+
+need to add | S_{T_{i-1}+1} .. S_{T_i-1} /= N, give this a name along with T_i etc
+
+P(N_i = N)
+= P(S_{T_i-1} = N)
+= sum_k>0 P(T_i=T_{i-1}+k) P(S_{T_i-1}=N | T_i=T_{i-1}+k)
+= P(T_i=T_{i-1}+1) P(S_{T_i-1}=N | T_i=T_{i-1}+1) since P(S_{T_i-1}=N | T_i=T_{i-1}+k)=0 for k>1
+= 1/n 1
+
+simpler if we define K = T_i - T_{i-1}
+
+P(N_i = M) where M /= N
+= P(S_{T_i-1} = M
+= sum_k>0 P(T_i=T_{i-1}+k) P(S_{T_i-1}=N | T_i=T_{i-1}+k) 
+= sum_k>1 P(T_i=T_{i-1}+k) P(S_{T_i-1}=N | T_i=T_{i-1}+k) since P(S_{T_i-1}=M | T_i=T_{i-1}+k)=0 for k=1
+= sum_k>1 P(T_i=T_{i-1}+k) (n-1 / n) since S independent
+= (n-1 / n) sum_k>1 P(T_i=T_{i-1}+k)
+= (n-1 / n) P(T_i /= T_{i-1}+1)
+= (n-1 / n) (1 - 1/n)
+= 1/n
+
+thm: the times of N_i form a poisson process with rate \lambda, starting from time \lambda
+
+proof: thinning property
+
+given the way that this stream is generated it may seem strange that it still has such pleasant properties. however, these hold only when the values of the stream are considered separately from the timings. for example, a node only selects its own address when it makes two consecutive calls to the root so when this happens the expected length of the previous interval is stricly less than \lambda. (in fact a ctmc)
+
+this algorithm is simple and easy to analyse but it introduces a single point of failure which must sustain a load proportional to the number of nodes in the network. this is obviously unacceptable for a large network. 
+
+we can amelerioate this weakness somewhat by using more than one root node. we have a set of root nodes R_0 .. R_k which are known to every node. for each message the sending node chooses a root node uniformly at random. we can see that this has the same properties as the previous systems quite easily. by the thinning property we can consider each root node to be an independent poisson process with rate n \lambda / k. then each node in the network has k independent peer selection processes with rate \lambda / k and with the properties proved for the previous algorithm. by the merging property we can combine these peer selection processes to form a single process with the same properties
+
+!!! need to prove that output is independent of choices
+
+this alleviates some of the load on the root and makes the network more resilient but we still have a predetermined set of root nodes to which we cannot add or remove nodes. examining the proof above, the only reason that the set of root nodes needs to be known is in order to make a random selection from it. these selections are required to be uniformly distributed and independent. what we need is a peer selection service for the root nodes
+
+the solution is to feed the output of the algorithm back in. each node also acts as a root node. the system is bootstrapped from a predetermined set of root nodes so that each node has generated at least one peer selection. then these IID uniform peer selections are used to choose which node to contact next to receive a new peer selection. importantly, the output of the root nodes in independent of the root input so the peer selections continue to be suitable for use as independent choices of root node.
+
+now this seems intuitively correct but there are a number of subtle implementation details that have been overlooked. for example, the first node to contact a given root node does not receive a reply, since that root node does not yet have any values to return. how should this be handled? how do we know when all nodes have finished bootstrapping? will uniform selection still hold if some nodes start acting as root nodes before others have bootstrapped?
+
+fortunately, since the algorithm as a whole forms a continuous time markov chain we can model it explicitly using prism. this provides an unambigous definition of the algorithm and allows both exhaustive checking for small networks and simulations for large networks
+
+\end{document}
