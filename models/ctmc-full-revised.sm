@@ -1,0 +1,34 @@
+ctmc
+
+const double lambda = 1.0;
+const double mu = 0.001;
+const int n = 3;
+
+module poppi
+	root0 : [0..n-1] init 0;
+        root1 : [0..n-1] init 0;
+        root2 : [0..n-1] init 0;
+
+	node0 : [0..n-1] init 0;
+       	node1 : [0..n-1] init 0;
+	node2 : [0..n-1] init 0;
+
+	// node0 contacts a root and receives a new peer selection
+	[] node0=0 -> lambda:(root0'=0)&(node0'=root0);
+	[] node0=1 -> lambda:(root1'=0)&(node0'=root1);
+	[] node0=2 -> lambda:(root2'=0)&(node0'=root2);
+	[] true -> mu:(root0'=0)&(node0'=root0);
+
+	// node1 contacts a root and receives a new peer selection
+	[] node1=0 -> lambda:(root0'=1)&(node1'=root0);
+	[] node1=1 -> lambda:(root1'=1)&(node1'=root1);
+	[] node1=2 -> lambda:(root2'=1)&(node1'=root2);
+	[] true -> mu:(root0'=1)&(node1'=root0);
+
+	// node2 contacts a root and receives a new peer selection
+	[] node2=0 -> lambda:(root0'=2)&(node2'=root0);
+	[] node2=1 -> lambda:(root1'=2)&(node2'=root1);
+	[] node2=2 -> lambda:(root2'=2)&(node2'=root2);
+	[] true -> mu:(root0'=2)&(node2'=root0);
+       
+endmodule

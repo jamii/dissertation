@@ -1,0 +1,53 @@
+dtmc
+
+const int n = 3;
+const double lambda = 1.0;
+const double mu = 0.001;
+const double node = lambda / (mu + lambda);
+const double default = mu / (mu + lambda);
+
+module next
+	next : [0..n-1] init 0;
+
+	[next] true -> (1/n):(next'=0) + (1/n):(next'=1) + (1/n):(next'=2);
+endmodule
+
+module poppi
+	root0 : [0..n-1] init 0;
+        root1 : [0..n-1] init 0;
+        root2 : [0..n-1] init 0;
+
+	node0 : [0..n-1] init 0;
+       	node1 : [0..n-1] init 0;
+	node2 : [0..n-1] init 0;
+
+	// node0 contacts a root and receives a new peer selection
+	[next] (next=0)&(node0=0) -> node:(root0'=0)&(node0'=root0) + default:(root0'=0)&(node0'=root0);
+	[next] (next=0)&(node0=1) -> node:(root1'=0)&(node0'=root1) + default:(root0'=0)&(node0'=root0);
+	[next] (next=0)&(node0=2) -> node:(root2'=0)&(node0'=root2) + default:(root0'=0)&(node0'=root0);
+
+	// node1 contacts a root and receives a new peer selection
+	[next] (next=1)&(node1=0) -> node:(root0'=1)&(node1'=root0) + default:(root0'=1)&(node1'=root0);
+	[next] (next=1)&(node1=1) -> node:(root1'=1)&(node1'=root1) + default:(root0'=1)&(node1'=root0);
+	[next] (next=1)&(node1=2) -> node:(root2'=1)&(node1'=root2) + default:(root0'=1)&(node1'=root0);
+
+	// node0 contacts a root and receives a new peer selection
+	[next] (next=2)&(node2=0) -> node:(root0'=2)&(node2'=root0) + default:(root0'=2)&(node2'=root0);
+	[next] (next=2)&(node2=1) -> node:(root1'=2)&(node2'=root1) + default:(root0'=2)&(node2'=root0);
+	[next] (next=2)&(node2=2) -> node:(root2'=2)&(node2'=root2) + default:(root0'=2)&(node2'=root0);
+       
+endmodule
+
+module poppi_past
+	next_past : [0..n-1] init 0;
+
+	node0_past : [0..n-1] init 0;
+       	node1_past : [0..n-1] init 0;
+	node2_past : [0..n-1] init 0;
+
+	[next] true -> (next_past'=next)&(node0_past'=node0)&(node1_past'=node1)&(node2_past'=node2);
+endmodule
+
+rewards "node0_0_0"
+	(next_past=0)&(node0_past=0)&(node0=0) : 1;
+endrewards
