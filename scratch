@@ -8,8 +8,11 @@ rewrite maths section to include prism
 	    		discuss why this is hard
 	    independent of other current
 	    non-steady state transitions
-	figure out why fix works
-	       perhaps dont specify an initial state and talk about bscc
+	explain fix
+		non-connected
+		init fixes us in one bscc
+		stops the bootstrap from ever working correctly
+		count states - some missing eg 0,1,2 0,1,2 which is a single bscc
 	compare to random surfer model
 	compare different implementations of fix wrt efficiency
 intro
