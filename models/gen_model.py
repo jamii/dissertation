@@ -36,29 +36,31 @@ module poppi
 endmodule
 """ % (roots, nodes, transitions)
 
-def dtmc(k, n, constants, transitions, use_next=True):
-    if use_next:
-        next_string = next(n)
+def dtmc(k, n, constants, transitions, use_past=True):
+    if k == 1:
+        k_string = ""
     else:
-        next_string = ""
+        k_string = "const int k = %s;\n" % k
+    if use_past:
+        past_string = poppi_past(n)
+    else:
+        past_string = ""
     return """
 dtmc
 
 const int n = %s;
-const int k = %s; 
+%s%s%s
 %s
 %s
-%s
-%s
-""" % (n, k, constants, next_string, poppi(k, n, transitions), poppi_past(n))
+""" % (n, k_string, constants, next(n), poppi(k, n, transitions), past_string)
 
-def dtmc_single(n, use_next=True):
+def dtmc_single(n, use_past=True):
     transition = """
   //node%s contacts the root and receives a new peer selection
   [next] (next=%s) -> (root'=%s)&(node%s'=root);
 """
     transitions = ''.join([transition % (i,i,i,i) for i in range(0,n)])
-    return dtmc(1, n, "", transitions, use_next=use_next)
+    return dtmc(1, n, "", transitions, use_past=use_past)
 
 def dtmc_multiple(n,k=2):
     clause = "(1/k):(root%s'=%s)&(node%s'=root%s)"
