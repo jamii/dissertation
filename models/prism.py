@@ -30,3 +30,15 @@ def run(model, props):
     if len(results) != len(props):
         raise PrismError("Results mismatch\n\n" + output)
     return [scrape_result(result, prop) for (result, prop) in zip(results,props)]
+
+def sim(model, props):
+    with open('model.sm', 'w') as file:
+        file.write(model)
+    with open('props.pctl', 'w') as file:
+        props_content = 'const int T;\n' + '\n'.join(map(str,props))
+        file.write(props_content)
+    output = commands.getoutput("prism model.sm props.pctl -sim -simconf 0.1 -simapprox 0.01 -const T=500:500:1000")
+    results = output.split('-' * 43)[2:]
+    if len(results) != len(props):
+        raise PrismError("Results mismatch\n\n" + output)
+    return [scrape_result(result, prop) for (result, prop) in zip(results,props)]
