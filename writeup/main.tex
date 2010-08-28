@@ -6,76 +6,259 @@
 \usepackage{amsfonts}
 \usepackage{amssymb}
 \usepackage{amsthm}
-\usepackage{babel}
 \usepackage{fontenc}
 \usepackage[pdftex]{graphicx}
-
 \usepackage[dvips]{hyperref}
+
+\usepackage{listings}
 
 \date{2010-08-23}
 
+\lstset{breaklines=true, breakatwhitespace=true}
+\newcommand{\prismmodel}[1]{
+  \begin{quotation}
+  \footnotesize
+  \lstinputlisting{#1.sm}
+  \end{quotation}
+}
+\newenvironment{prismprop}[0]{
+  \begin{center}
+  \begin{tabular}{c}
+  \footnotesize
+}{
+  \end{tabular}
+  \end{center}
+}
+
+\newtheorem*{thm}{Theorem}
+
 \begin{document}
+
+\section{Implementing a uniform PSS}
+
+Pick some root node $R$, whose address is known to all other nodes. Every other node behaves as an independent poisson process sending messages to the root node at a rate $\lambda$. Let $R_i$ be the sender of the $i$th message to arrive at the root node. By the merging property the sequence $R_i$ forms a possion process of rate $n \lambda$ and each $R_i$ is an independent uniform random choice from the set of all nodes.
+
+On receiving each message $R_i$, the root node sends the address of $R_{i-1}$ to $R_i$. Let $N_i$ be the $i$th message to arrive at node $N$ from the root $R$. Let $T^N_i$ be the index in $R$ of this message ie
+
+\begin{gather*}
+S_{T^N_i} = N \\
+S_{T^N_i-1} = N_i \\
+\end{gather*}
+
+For each node $N$ the sequence of addresses $N_i$ will form the peer selections for $N$.
+
+\begin{thm}For each node $N$ the peer selections $N_i$ are independent\end{thm}
+
+\begin{proof}
+For any node $M$
+\begin{align*}
+& \!\!\! P(N_i = M |\; N_0=n_0, ... ,N_{i-1} = n_{i-1}) \\
+& = P(S_{T^N_i-1} = M |\; S_{T^N_0-1} = n_0, ... ,S_{T^N_{i-1}-1} = n_{i-1}) \\
+& = P(S_{T_i-1} = M) \text{ since $S_i$ are independent} \\
+\end{align*}
+\end{proof}
+
+\begin{thm}For each node N the peer selections $N_i, \; i>0$ are uniformly distributed over the set of all nodes (note that $N_0$ is not uniformly distributed since it can only be equal to $N$ when $S_0 = S_1 = N$)\end{thm}
+
+\begin{proof}
+Consider the peer selection $N_i$. Define $K = T^N_i - T^N_{i-1}$.
+
+\begin{align*}
+P(&N_i = N) \\
+& = \sum_{k>0} P(K=k) P(S_{T^N_i-1}=N | K=k) \\
+& = P(K=1) P(S_{T^N_i-1}=N | K=1) \text{ since $\forall k>1 \;\; P(S_{T^N_i-1}=M | K=k) = 0$} \\
+& = \frac{1}{n} \; 1 \\
+\end{align*}
+
+\noindent For $M \neq N$: \\
+\begin{align*}
+P(&N_i = M) \\
+& = P(S_{T_i-1} = M \\
+& = \sum_{k>0} P(K=k) P(S_{T^N_i-1}=M | K=k) \\
+& = \sum_{k>1} P(K=k) P(S_{T^N_i-1}=M | K=k) \text{ since $P(S_{T^N_i-1}=M | K=1) = 0$} \\
+& = \sum_{k>1} P(K=k) P(S_{T^N_i-1}=M | K=k, S_{T^N_i-1} /= N) \text{ since $T^N_{i-1} = T^N_i - K < T^N_i-1 < T^N_i$} \\
+& = \sum_{k>1} P(K=k) (1 / n-1) \text{ since $S_i$ are independent} \\
+& = \frac{1}{n-1} \sum_{k>1} P(K=k) \\
+& = \frac{1}{n-1} P(K>1) \\
+& = \frac{1}{n-1} (1 - \frac{1}{n}) \\
+& = \frac{1}{n} \\
+\end{align*}
+
+\end{proof}
+
+\begin{thm}The selection times $T^N_i$ form a poisson process with rate $\lambda$, starting from time $\lambda$?\end{thm}
+
+proof: thinning property? !!!
+
+The system as a whole forms a continuous-time markov chain. Using the PRISM model checker we can provide an explicit and unambigous description of this algorithm and verify the desired properties.
+
+\prismmodel{ctmc_single}
+
+For the sake of clarity, in this section we will only present example models and describe the properties which need to be tested. More complete details on model generation and the methods for testing various properties are described in Appendix A.
+
+In the above model the variable 'root' represents the last node to send a message to the root node and the variables 'node0', 'node1' and 'node2' represent the last peer selection at their respective nodes.
+
+Suppose we wanted to test the claim that each $N_i$ is uniformly distributed for $i>0$. This turns out to be very difficult in this model. We could test $P(N_i = M)$ for any fixed point in time and check that the value is the same for each node $M$:
+
+\begin{prismprop}
+\begin{lstlisting}
+P=? [ F[T,T] node0=0 ]
+P=? [ F[T,T] node0=1 ]
+P=? [ F[T,T] node0=2 ]
+\end{lstlisting}
+\end{prismprop}
+
+Or we could test the same thing in the steady state:
+
+\begin{prismprop}
+\begin{lstlisting}
+S=? [ node0=0 ]
+S=? [ node0=1 ]
+S=? [ node0=2 ]
+\end{lstlisting}
+\end{prismprop}
+
+Whilst these are nice properties to have neither of them are quite the same as saying that $N_i$ are uniformly distributed. The problem is that each $N_i$ is associated with a transition whereas the properties above are associated with points in time. It is awkward to specify PRISM properties relating to transitions when using a CTMC model. One workaround is to use transition rewards but this brings its own problems. Transition rewards have no meaning in the steady state and cannot be calculated by the PRISM simulator which makes working with large models impossible.
+
+A simpler solution is to ignore transition times altogether and work with the jump process - the deterministic-time markov chain corresponding to the transitions of the CTMC. The translation is straightforward:
+
+\prismmodel{dtmc_single}
+
+Notice that the choice of which node will next send a message to the root has been made explicit. Also the 'Past' module has been added which tracks the last value of each variable. This makes it easy to identify peer selections. For example, if next\_past is 0 then node0 is a new peer selection, replacing the previous selection node0\_past.
+
+Now we can directly test that the distribution of peer selections at a given node is uniform in the steady state. The following must all be equal:
+
+\begin{prismprop}
+\begin{lstlisting}
+S=? [ next_past=0 & node0=0 ]
+S=? [ next_past=0 & node0=1 ]
+S=? [ next_past=0 & node0=2 ]
+\end{lstlisting}
+\end{prismprop}
+
+Similarly we can test that each peer selection is independent of the previous peer selection by checking that the following are equal:
+
+\begin{prismprop}
+\begin{lstlisting}
+S=? [ next_past=0 & node0=0 & node_past=0 ]
+S=? [ next_past=0 & node0=0 & node_past=1 ]
+S=? [ next_past=0 & node0=0 & node_past=2 ]
+
+S=? [ next_past=0 & node0=0 & node_past=0 ]
+S=? [ next_past=0 & node0=1 & node_past=1 ]
+S=? [ next_past=0 & node0=2 & node_past=2 ]
+
+S=? [ next_past=0 & node0=0 & node_past=0 ]
+S=? [ next_past=0 & node0=1 & node_past=1 ]
+S=? [ next_past=0 & node0=2 & node_past=2 ]
+\end{lstlisting}
+\end{prismprop}
+
+For good measure, we can check in both models that the latest peer selections at each node are pairwise independent by testing:
+
+\begin{prismprop}
+\begin{lstlisting}
+S=? [ node0=0 & node1=0 ]
+S=? [ node0=0 & node1=1 ]
+S=? [ node0=0 & node1=2 ]
+
+S=? [ node0=1 & node1=0 ]
+S=? [ node0=1 & node1=1 ]
+S=? [ node0=1 & node1=2 ]
+
+S=? [ node0=2 & node1=0 ]
+S=? [ node0=2 & node1=1 ]
+S=? [ node0=2 & node1=2 ]
+\end{lstlisting}
+\end{prismprop}
+
+This algorithm is easy to reason about and provides strong guarantees about the distribution of peer selections. It is also simple enough that we can model it directly in PRISM and verify a subset of the properties that were proved analytically. Unfortunately it introduces a single point of failure at the root node which must sustain a load proportional to the number of nodes in the network. This is obviously unacceptable for a large network. The next sections will describe how to remove this point of failure.
+
+\section{Spreading the load}
+
+A simple aproach to improving the previous algorithm is to use more than one root node. We can replace the single root node with a set of root nodes $R_0 .. R_k$ which are known to every node. Each of the new root nodes behave identically to the root node in the previous algorithm. For each message the sending node chooses a root node uniformly at random to contact. 
+
+Intuitively, this has the same steady-state properties as the previous algorithm. The argument is as follows: By the thinning property we can consider the messages arriving at each root node to be independent poisson processes each with rate $n \lambda / k$. Then each node receives $k$ independent peer selection processes (one from each root node) each with rate $\lambda / k$ and with peer selections which are independent and uniformly distributed as proved for the previous algorithm. By the merging property we can combine these peer selection processes to form a single process again with the same properties. 
+
+One change we should be careful to note is that in the previous algorithm the first peer selection $N_0$ was not uniformly distributed. Since we now have $k$ of these processes being interleaved we can't guarantee when the first peer selection from each node will occur. We can guarantee that in the worst case each node has to send two messages to each root node before all future peer selections at that node will be uniformly distributed (the first message might be the first message at that node in which case it will not generate a peer selection).
+
+Define $I_N$ to be the point at which at least two messages have been sent from $N$ to each peer node.
+
+thm: $E(I_N) <=$ 
+
+Define $J_N$ to be the point at which at least one message has been sent from $N$ to each peer node.
+
+$$
+P(J_N = j)
+= !!! can afford not to prove this
+$$
  
-have a special root node. every other node sends messages to it at a rate \lambda. by the merging property of the poisson process messages arrive at the root node at a rate n \lambda and the source of each arriving message is uniformly distributed amongst the nodes and chosen independently of all the other messages. so the root node now has the desired stream S_0, S_1 ... of IID uniform choices from the set of nodes. on receiving each message i from node S_i, the root node sends the address of S_{i-1} to S_i. simply dont reply to S_0. so each node N receives a stream of addresses N_0 ... = {S_{i-1} | S_i = N, i > 0}. we know that S is IID uniform thanks to the properties of the poisson process but it seems possible that this method of splitting the stream into n streams might lead to bias in the resulting streams. indeed, for each node N the peer selection N_0 is not uniformly distributed - it can never be equal to N.
+We can model this new algorithm in PRISM:
 
-define T_i
+\prismmodel{ctmc_multiple}
 
-thm: for each node N the peer selections N_i are independent for i>=0 and uniformly distributed over Nodes for i>0
-split into 2 proofs
+Again many properties are easier to prove using the jump process.
 
-proof:
+\prismmodel{dtmc_multiple}
 
-consider a node N
+We can reuse all the properties tested for the original algorithm without out change and, as expected, all of them still hold.
 
-define selection times T = {i | S_i = N, i >= 0}
-selections N_i = S_{T_i-1}
+\section{Inside out}
 
-indepence is straightforward
+This alleviates some of the load on the root and makes the network more resilient but we still have a predetermined set of root nodes to which we cannot add or remove nodes. Examining the proof above, the only reason that the set of root nodes needs to be known is in order to make a random selection from it. These selections are required to be uniformly distributed and independent. What we need is a peer selection service for the root nodes.
 
-P(N_i = M | N_j = n_j, j<i)
-= P(S_{T_i-1} = M | S_{T_j-1} = n_j, j<i)
-= P(S_{T_i-1} = M) since S is independent
+The solution is to feed the output of the algorithm back in. Each node can also act as a root node. The system is bootstrapped from a known set of root nodes so that each node has generated at least one peer selection. Then these independent uniform peer selections are used to choose which node to contact next to receive a new peer selection. !!! importantly, the output of the root nodes in independent of the root input so the peer selections continue to be suitable for use as independent choices of root node.
 
-uniform distribution is a little more complicated
+This seems intuitively correct but there are a number of subtle implementation details that have been glossed over. For example, will uniform selection still hold if some nodes start acting as root nodes before others have bootstrapped? Rather than go into detail we will simply use the PRISM model as the !!! exact specifier majiggy !!!
 
-need to add | S_{T_{i-1}+1} .. S_{T_i-1} /= N, give this a name along with T_i etc
+\prismmodel{ctmc_broken}
 
-P(N_i = N)
-= P(S_{T_i-1} = N)
-= sum_k>0 P(T_i=T_{i-1}+k) P(S_{T_i-1}=N | T_i=T_{i-1}+k)
-= P(T_i=T_{i-1}+1) P(S_{T_i-1}=N | T_i=T_{i-1}+1) since P(S_{T_i-1}=N | T_i=T_{i-1}+k)=0 for k>1
-= 1/n 1
+Again, it is useful to work with the jump process as well.
 
-simpler if we define K = T_i - T_{i-1}
+\prismmodel{dtmc_broken}
 
-P(N_i = M) where M /= N
-= P(S_{T_i-1} = M
-= sum_k>0 P(T_i=T_{i-1}+k) P(S_{T_i-1}=N | T_i=T_{i-1}+k) 
-= sum_k>1 P(T_i=T_{i-1}+k) P(S_{T_i-1}=N | T_i=T_{i-1}+k) since P(S_{T_i-1}=M | T_i=T_{i-1}+k)=0 for k=1
-= sum_k>1 P(T_i=T_{i-1}+k) (n-1 / n) since S independent
-= (n-1 / n) sum_k>1 P(T_i=T_{i-1}+k)
-= (n-1 / n) P(T_i /= T_{i-1}+1)
-= (n-1 / n) (1 - 1/n)
-= 1/n
+!!! find, for both the CTMC and the DTMC:
 
-thm: the times of N_i form a poisson process with rate \lambda, starting from time \lambda
+\begin{prismprop}
+\begin{lstlisting}
+S=? [ node0=0 ]  0.31186...
+S=? [ node0=1 ]  0.34407...
+S=? [ node0=2 ]  0.34407...
+\end{lstlisting}
+\end{prismprop}
 
-proof: thinning property
+This is well outside the bounds of numerical error. What went wrong? 
 
-given the way that this stream is generated it may seem strange that it still has such pleasant properties. however, these hold only when the values of the stream are considered separately from the timings. for example, a node only selects its own address when it makes two consecutive calls to the root so when this happens the expected length of the previous interval is stricly less than \lambda. (in fact a ctmc)
+!!! something about reachable states
 
-this algorithm is simple and easy to analyse but it introduces a single point of failure which must sustain a load proportional to the number of nodes in the network. this is obviously unacceptable for a large network. 
+\begin{prismprop}
+\begin{lstlisting}
+SCCs: 5, BSCCs: 5, non-BSCC states: 0
+BSCC sizes: 1:683 2:15 3:15 4:15 5:1
+\end{lstlisting}
+\end{prismprop}
 
-we can amelerioate this weakness somewhat by using more than one root node. we have a set of root nodes R_0 .. R_k which are known to every node. for each message the sending node chooses a root node uniformly at random. we can see that this has the same properties as the previous systems quite easily. by the thinning property we can consider each root node to be an independent poisson process with rate n \lambda / k. then each node in the network has k independent peer selection processes with rate \lambda / k and with the properties proved for the previous algorithm. by the merging property we can combine these peer selection processes to form a single process with the same properties
+!!! stuff. 
 
-!!! need to prove that output is independent of choices
+This is reminiscent of the random surfer problem, in which a person surfs the web by randomly following hyperlinks. The resulting markov chain has the same structure as the underlying hyperlink graph. If the hyperlink graph is not connected or if it has periodic states then the resulting markov chain will not have a well defined steady state. The solution is to add an arbitrarily small probability that the user will jump to page selected uniformly at random. This transition unifies unconnected states and removes periodicity. Our problem can be fixed in a similar manner by adding a arbitrarily small probability of contacting one of the known root nodes.
 
-this alleviates some of the load on the root and makes the network more resilient but we still have a predetermined set of root nodes to which we cannot add or remove nodes. examining the proof above, the only reason that the set of root nodes needs to be known is in order to make a random selection from it. these selections are required to be uniformly distributed and independent. what we need is a peer selection service for the root nodes
+\prismmodel{ctmc_full}
 
-the solution is to feed the output of the algorithm back in. each node also acts as a root node. the system is bootstrapped from a predetermined set of root nodes so that each node has generated at least one peer selection. then these IID uniform peer selections are used to choose which node to contact next to receive a new peer selection. importantly, the output of the root nodes in independent of the root input so the peer selections continue to be suitable for use as independent choices of root node.
+Now all the states are reachable from the initial state.
 
-now this seems intuitively correct but there are a number of subtle implementation details that have been overlooked. for example, the first node to contact a given root node does not receive a reply, since that root node does not yet have any values to return. how should this be handled? how do we know when all nodes have finished bootstrapping? will uniform selection still hold if some nodes start acting as root nodes before others have bootstrapped?
+\begin{prismprop}
+\begin{lstlisting}
+SCCs: 1, BSCCs: 1, non-BSCC states: 0
+BSCC sizes: 1:729
+\end{lstlisting}
+\end{prismprop}
 
-fortunately, since the algorithm as a whole forms a continuous time markov chain we can model it explicitly using prism. this provides an unambigous definition of the algorithm and allows both exhaustive checking for small networks and simulations for large networks
+Translating to the jump process is still straightforward.
+
+\prismmodel{dtmc_full}
+
+!!! maybe talk about time before uniform distribution
+
+Reassuringly, all of our tests now pass and we have a simple, distributed peer selection service with strong guarantees on the distribution of peer selections. 
 
 \end{document}

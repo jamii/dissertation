@@ -10,14 +10,14 @@ endmodule
 
 def poppi_past(n):
     nodes = '\n'.join(["  node%s_past : [0..n-1] init 0;" % i for i in range(0,n)])
-    updates = '&'.join(["(node%s_past'=node%s)" % (i,i) for i in range(0,n)])
+    updates = ' & '.join(["(node%s_past'=node%s)" % (i,i) for i in range(0,n)])
     return """
 module poppi_past
   next_past : [0..n-1] init 0;
   
 %s
 
-  [next] true -> (next_past'=next)&%s;
+  [next] true -> (next_past'=next) & %s;
 endmodule
 """ % (nodes, updates)
 
@@ -102,15 +102,18 @@ const double default = mu / (mu + lambda);
     return dtmc(n, n, constants, transitions)
 
 def ctmc(k, n, constants, transitions):
+    if k == 1:
+        k_string = ""
+    else:
+        k_string = "\nconst int k = %s;" % k
     return """
 ctmc
 
-const int n = %s;
-const int k = %s; 
+const int n = %s;%s
 const double lambda = 1.0;
 %s
 %s
-""" % (n, k, constants, poppi(k, n, transitions))
+""" % (n, k_string, constants, poppi(k, n, transitions))
     
 def ctmc_single(n):
     transition = """
@@ -120,7 +123,7 @@ def ctmc_single(n):
     transitions = ''.join([transition % (i,i,i) for i in range(0,n)])
     return ctmc(1, n, "", transitions)
 
-def ctmc_multiple(n,k=3):
+def ctmc_multiple(n,k=2):
     clause = "(lambda/k):(root%s'=%s)&(node%s'=root%s)"
     def clauses(node):
         return ' + '.join([clause % (root,node,node,root) for root in range(0,k)])
