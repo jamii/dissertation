@@ -19,6 +19,7 @@ def test_equalish(results, tolerance=0.0):
         return False
 
 def base_tests(model_gen):
+    print "Base tests (model checker)"
     for n in [3]:
         model = model_gen(n)
         for node in range(0,n):
@@ -28,12 +29,14 @@ def base_tests(model_gen):
                     test_equalish(prism.run(model, node_inter(node, node2, n)), tolerance=0.001)
 
 def dtmc_tests(model_gen):
+    print "DTMC tests (model checker)"
     for n in [3]:
         model = model_gen(n)
         for node in range(0,n):
             test_equalish(prism.run(model, node_past(node, n)), tolerance=0.001)
 
 def base_tests_sim(model_gen):
+    print "Base tests (simulator)"
     for n in [100]:
         model = model_gen(n)
         #for node in range(0,n):
@@ -45,6 +48,7 @@ def base_tests_sim(model_gen):
         test_equalish(prism.sim(model+node_inter_reward(node, node2, n), node_inter_r(node, node2, n)), tolerance=0.02)
 
 def dtmc_tests_sim(model_gen):
+    print "DTMC tests (simulator)"
     for n in [100]:
         model = model_gen(n)
         #for node in range(0,n):
