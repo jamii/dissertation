@@ -302,11 +302,18 @@ Reassuringly, all of our tests now pass and we have a simple, distributed peer s
 
 \section{Conclusion}
 
-have produced a gossip algorithm which is simple, easy to implement and resilient to random failure and churn. the peer selection service produced by the algorithm generates independent, uniformly distributed peer selections when in the steady state. as fair as the author is aware this is the first gossip algorithm to make \em{any} predictions whatsoever about the behaviour of its peer selection service.
+We presented a gossip algorithm which is simple, easy to implement and resilient to random failure and churn. The peer selection service produced by this algorithm generates independent, uniformly distributed peer selections when in the steady state. As far as the author is aware this is the first gossip algorithm to make \em{any} predictions whatsoever about the behaviour of its peer selection service.
 
-suitable for private networks eg within a data centre. as it is, probably not suitable for untrusted peers - too easy to poison or otherwise sabotage. also - frequent small messages to lots of different peers so nat negotiation will be a bitch. future work: investigate resistance to malicious atttack, in particular investigate ways of throttling malicious peers without damaging the nice properties, large-scale experiments on open networks (cf ARRG) with other algorithms consuming the pss
+This algorithm is suitable for use with trusted peers, for example within a data centre. Without further work it is not suitable for use with untrusted peers as it is susceptible to poisoning or other malicious behaviour. Future work could include identifying and managing malicious peers. In particular, it should be possible to rate-limit malicious peers without damaging the useful properties of the peer selection service. This would go a long way towards preventing poisoning. Given the simplicity of this algorithm it may be even be possible to prove that specific classes of attacks will not work.
 
-\section{Appendix A: Model checking !!! stuff}
+In addition, this use of frequent small messages to lots of different peers makes it difficult to perform NAT negotiation efficiently. Large scale uses of gossip algorithms have often found that NAT negotiation is essential - reliance on UPnP or similar is ineffective. One solution might be to reuse the root nodes as ICE servers for nodes which are known to be unable to open ports to the outside world.
+
+\nocite{*}
+
+\bibliographystyle{plain}
+\bibliography{gossip}
+
+\section{Appendix A: Model checking methods}
 
 \section{Appendix B: Reference implementation}
 
