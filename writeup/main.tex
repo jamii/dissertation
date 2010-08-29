@@ -36,38 +36,34 @@
 
 \section{Introduction}
 
-gossip algorithms, first introduced?, examples and uses
+Gossip algorithms are an important tool in many peer-to-peer systems. Whilst there are a number of related algorithms that are referred to as gossip algorithms, \cite{pss} defines a core common to almost all of these: the peer sampling service (PSS). This service provides each node with a random selection of other nodes to gossip with. 
 
-define pss, should be easy to analyse (point to paper describing approaches) but no succesfull analysis of pss distribution
+!!!foo argues that one of the main points in favour of using gossip algorithms to build distributed systems is that their simplicity makes them amenable to formal analysis. Despite this, no formal analysis of a peer sampling service has been produced. Many thorough empirical studies have been conducted \cite{pss} !!! more, in particular \cite{pss} demonstrates that many of the assumptions commonly made about the behaviour of the peer sampling service do not hold in practice. It has also been noted !!!cite that the behaviour of gossip algorithms is often highly sensitive to small changes. Finally, many gossip algorithms have turned out to be surprisingly susceptible to malicious attack !!!cite. For these reasons it would be beneficial to have a stronger theoretical foundation to work from.
 
-2 background and examine cyclon, a simple well-studied algorithm
+In this dissertation we will present a peer sampling service for which we can make strong theoretical guarantees about its behaviour. Section 2 discusses related work and presents cyclon as a well-studied example of a gossip algorithm. Section 3 describes our general approach and introduces the necessary mathematics. Section 4 describes a centralised algorithm for providing independent, uniformly distributed peer samples. Section 5 discusses balancing the load of the centralised algorithm across multiple nodes. Section 6 introduces a fully distributed version of the previous algorithm. Section 7 investigates the algorithms resilience to random failure and churn. Section 8 presents a reference implementation and test results. Finally section 9 presents a conclusion and discusses future extensions.
 
-3 will describe our general approach and introduce the necessary mathematics
+\section{Related work}
 
-4 describe a centralised algorithm for providing independent, uniformly distributed peer selections
+what is a gossip algorithm?
 
-5 discuss balancing the load of the centralised algorithm across multiple nodes
+list examples of gossip algorithms in use
 
-6 introduce a fully distributed version of the previous algorithm
+should be easy to model pss but ... (point to paper describing approaches)
 
-7 we investigate the algorithms resilience to random failure
+examples of partial models
 
-8 present a reference implementation and test results
+examine cyclon \cite{cyclon} and look at examples of difficult analysis
 
-9 conclusion?
-
-\section{Background}
-
-examine cyclon and look at examples of difficult analysis
+\section{Approach}
 
 define pss properly, compare to entropy pool in /dev/random
 
 cyclon is conflating view and pss
 cyclon use fixed time intervals so must account for interleaving
 
-\section{Approach}
+an example in nature: radioactive decay.
 
-an example in nature: radioactive decay. the algorithm developed here will 
+talk about exponential distribution, poisson process. state and reference thinning and merging properties
 
 \section{Implementing a uniform PSS}
 
@@ -80,9 +76,9 @@ S_{T^N_i} = N \\
 S_{T^N_i-1} = N_i \\
 \end{gather*}
 
-For each node $N$ the sequence of addresses $N_i$ will form the peer selections for $N$.
+For each node $N$ the sequence of addresses $N_i$ will form the peer samples for $N$.
 
-\begin{thm}For each node $N$ the peer selections $N_i$ are independent\end{thm}
+\begin{thm}For each node $N$ the peer samples $N_i$ are independent\end{thm}
 
 \begin{proof}
 For any node $M$
@@ -93,10 +89,10 @@ For any node $M$
 \end{align*}
 \end{proof}
 
-\begin{thm}For each node N the peer selections $N_i, \; i>0$ are uniformly distributed over the set of all nodes (note that $N_0$ is not uniformly distributed since it can only be equal to $N$ when $S_0 = S_1 = N$)\end{thm}
+\begin{thm}For each node N the peer samples $N_i, \; i>0$ are uniformly distributed over the set of all nodes (note that $N_0$ is not uniformly distributed since it can only be equal to $N$ when $S_0 = S_1 = N$)\end{thm}
 
 \begin{proof}
-Consider the peer selection $N_i$. Define $K = T^N_i - T^N_{i-1}$.
+Consider the peer sampling $N_i$. Define $K = T^N_i - T^N_{i-1}$.
 
 \begin{align*}
 P(&N_i = N) \\
@@ -121,7 +117,7 @@ P(&N_i = M) \\
 
 \end{proof}
 
-\begin{thm}The selection times $T^N_i$ form a poisson process with rate $\lambda$, starting from time $\lambda$?\end{thm}
+\begin{thm}The sampling times $T^N_i$ form a poisson process with rate $\lambda$, starting from time $\lambda$?\end{thm}
 
 proof: thinning property? !!!
 
@@ -131,7 +127,7 @@ The system as a whole forms a continuous-time markov chain. Using the PRISM mode
 
 For the sake of clarity, in this section we will only present example models and describe the properties which need to be tested. More complete details on model generation and the methods for testing various properties are described in Appendix A.
 
-In the above model the variable 'root' represents the last node to send a message to the root node and the variables 'node0', 'node1' and 'node2' represent the last peer selection at their respective nodes.
+In the above model the variable 'root' represents the last node to send a message to the root node and the variables 'node0', 'node1' and 'node2' represent the last peer sampling at their respective nodes.
 
 Suppose we wanted to test the claim that each $N_i$ is uniformly distributed for $i>0$. This turns out to be very difficult in this model. We could test $P(N_i = M)$ for any fixed point in time and check that the value is the same for each node $M$:
 
@@ -159,9 +155,9 @@ A simpler solution is to ignore transition times altogether and work with the ju
 
 \prismmodel{dtmc_single}
 
-Notice that the choice of which node will next send a message to the root has been made explicit. Also the 'Past' module has been added which tracks the last value of each variable. This makes it easy to identify peer selections. For example, if next\_past is 0 then node0 is a new peer selection, replacing the previous selection node0\_past.
+Notice that the choice of which node will next send a message to the root has been made explicit. Also the 'Past' module has been added which tracks the last value of each variable. This makes it easy to identify peer samples. For example, if next\_past is 0 then node0 is a new peer sampling, replacing the previous sampling node0\_past.
 
-Now we can directly test that the distribution of peer selections at a given node is uniform in the steady state. The following must all be equal:
+Now we can directly test that the distribution of peer samples at a given node is uniform in the steady state. The following must all be equal:
 
 \begin{prismprop}
 \begin{lstlisting}
@@ -171,7 +167,7 @@ S=? [ next_past=0 & node0=2 ]
 \end{lstlisting}
 \end{prismprop}
 
-Similarly we can test that each peer selection is independent of the previous peer selection by checking that the following are equal:
+Similarly we can test that each peer sampling is independent of the previous peer sampling by checking that the following are equal:
 
 \begin{prismprop}
 \begin{lstlisting}
@@ -189,7 +185,7 @@ S=? [ next_past=0 & node0=2 & node_past=2 ]
 \end{lstlisting}
 \end{prismprop}
 
-For good measure, we can check in both models that the latest peer selections at each node are pairwise independent by testing:
+For good measure, we can check in both models that the latest peer samples at each node are pairwise independent by testing:
 
 \begin{prismprop}
 \begin{lstlisting}
@@ -207,15 +203,15 @@ S=? [ node0=2 & node1=2 ]
 \end{lstlisting}
 \end{prismprop}
 
-This algorithm is easy to reason about and provides strong guarantees about the distribution of peer selections. It is also simple enough that we can model it directly in PRISM and verify a subset of the properties that were proved analytically. Unfortunately it introduces a single point of failure at the root node which must sustain a load proportional to the number of nodes in the network. This is obviously unacceptable for a large network. The next sections will describe how to remove this point of failure.
+This algorithm is easy to reason about and provides strong guarantees about the distribution of peer samples. It is also simple enough that we can model it directly in PRISM and verify a subset of the properties that were proved analytically. Unfortunately it introduces a single point of failure at the root node which must sustain a load proportional to the number of nodes in the network. This is obviously unacceptable for a large network. The next sections will describe how to remove this point of failure.
 
 \section{Spreading the load}
 
 A simple aproach to improving the previous algorithm is to use more than one root node. We can replace the single root node with a set of root nodes $R_0 .. R_k$ which are known to every node. Each of the new root nodes behave identically to the root node in the previous algorithm. For each message the sending node chooses a root node uniformly at random to contact. 
 
-Intuitively, this has the same steady-state properties as the previous algorithm. The argument is as follows: By the thinning property we can consider the messages arriving at each root node to be independent poisson processes each with rate $n \lambda / k$. Then each node receives $k$ independent peer selection processes (one from each root node) each with rate $\lambda / k$ and with peer selections which are independent and uniformly distributed as proved for the previous algorithm. By the merging property we can combine these peer selection processes to form a single process again with the same properties. 
+Intuitively, this has the same steady-state properties as the previous algorithm. The argument is as follows: By the thinning property we can consider the messages arriving at each root node to be independent poisson processes each with rate $n \lambda / k$. Then each node receives $k$ independent peer sampling processes (one from each root node) each with rate $\lambda / k$ and with peer samples which are independent and uniformly distributed as proved for the previous algorithm. By the merging property we can combine these peer sampling processes to form a single process again with the same properties. 
 
-One change we should be careful to note is that in the previous algorithm the first peer selection $N_0$ was not uniformly distributed. Since we now have $k$ of these processes being interleaved we can't guarantee when the first peer selection from each node will occur. We can guarantee that in the worst case each node has to send two messages to each root node before all future peer selections at that node will be uniformly distributed (the first message might be the first message at that node in which case it will not generate a peer selection).
+One change we should be careful to note is that in the previous algorithm the first peer sampling $N_0$ was not uniformly distributed. Since we now have $k$ of these processes being interleaved we can't guarantee when the first peer sampling from each node will occur. We can guarantee that in the worst case each node has to send two messages to each root node before all future peer samples at that node will be uniformly distributed (the first message might be the first message at that node in which case it will not generate a peer sampling).
 
 Define $I_N$ to be the point at which at least two messages have been sent from $N$ to each peer node.
 
@@ -240,11 +236,11 @@ We can reuse all the properties tested for the original algorithm without out ch
 
 \section{Inside out}
 
-This alleviates some of the load on the root and makes the network more resilient but we still have a predetermined set of root nodes to which we cannot add or remove nodes. Examining the proof above, the only reason that the set of root nodes needs to be known is in order to make a random selection from it. These selections are required to be uniformly distributed and independent. What we need is a peer selection service for the root nodes.
+This alleviates some of the load on the root and makes the network more resilient but we still have a predetermined set of root nodes to which we cannot add or remove nodes. Examining the proof above, the only reason that the set of root nodes needs to be known is in order to make a random sampling from it. These samples are required to be uniformly distributed and independent. What we need is a peer sampling service for the root nodes.
 
-The solution is to feed the output of the algorithm back in. Each node can also act as a root node. The system is bootstrapped from a known set of root nodes so that each node has generated at least one peer selection. Then these independent uniform peer selections are used to choose which node to contact next to receive a new peer selection. !!! importantly, the output of the root nodes in independent of the root input so the peer selections continue to be suitable for use as independent choices of root node.
+The solution is to feed the output of the algorithm back in. Each node can also act as a root node. The system is bootstrapped from a known set of root nodes so that each node has generated at least one peer sampling. Then these independent uniform peer samples are used to choose which node to contact next to receive a new peer sampling. !!! importantly, the output of the root nodes in independent of the root input so the peer samples continue to be suitable for use as independent choices of root node.
 
-This seems intuitively correct but there are a number of subtle implementation details that have been glossed over. For example, will uniform selection still hold if some nodes start acting as root nodes before others have bootstrapped? Rather than go into detail we will simply use the PRISM model as the !!! exact specifier majiggy !!!
+This seems intuitively correct but there are a number of subtle implementation details that have been glossed over. For example, will uniform sampling still hold if some nodes start acting as root nodes before others have bootstrapped? Rather than go into detail we will simply use the PRISM model as the !!! exact specifier majiggy !!!
 
 \prismmodel{ctmc_broken}
 
@@ -294,27 +290,27 @@ Translating to the jump process is still straightforward.
 
 !!! maybe talk about time before uniform distribution
 
-Reassuringly, all of our tests now pass and we have a simple, distributed peer selection service with strong guarantees on the distribution of peer selections. 
+Reassuringly, all of our tests now pass and we have a simple, distributed peer sampling service with strong guarantees on the distribution of peer samples. 
 
 \section{Dealing with failure}
 
-\section{A reference implementation}
+\section{Reference implementation}
 
 \section{Conclusion}
 
-We presented a gossip algorithm which is simple, easy to implement and resilient to random failure and churn. The peer selection service produced by this algorithm generates independent, uniformly distributed peer selections when in the steady state. As far as the author is aware this is the first gossip algorithm to make \em{any} predictions whatsoever about the behaviour of its peer selection service.
+We presented a gossip algorithm which is simple, easy to implement and resilient to random failure and churn. The peer sampling service produced by this algorithm generates independent, uniformly distributed peer samples when in the steady state. As far as the author is aware this is the first gossip algorithm to make \em any \em predictions whatsoever about the behaviour of its peer sampling service.
 
-This algorithm is suitable for use with trusted peers, for example within a data centre. Without further work it is not suitable for use with untrusted peers as it is susceptible to poisoning or other malicious behaviour. Future work could include identifying and managing malicious peers. In particular, it should be possible to rate-limit malicious peers without damaging the useful properties of the peer selection service. This would go a long way towards preventing poisoning. Given the simplicity of this algorithm it may be even be possible to prove that specific classes of attacks will not work.
+This algorithm is suitable for use with trusted peers, for example within a data centre. Without further work it is not suitable for use with untrusted peers as it is susceptible to poisoning or other malicious behaviour. Future work could include identifying and managing malicious peers. In particular, it should be possible to rate-limit malicious peers without damaging the useful properties of the peer sampling service. This would go a long way towards preventing poisoning. Given the simplicity of this algorithm it may be even be possible to prove that specific classes of attacks will not work.
 
-In addition, this use of frequent small messages to lots of different peers makes it difficult to perform NAT negotiation efficiently. Large scale uses of gossip algorithms have often found that NAT negotiation is essential - reliance on UPnP or similar is ineffective. One solution might be to reuse the root nodes as ICE servers for nodes which are known to be unable to open ports to the outside world.
+In addition, the use of frequent small messages to lots of different peers makes it difficult to perform NAT negotiation efficiently. Large scale uses of gossip algorithms have often found that NAT negotiation is essential - reliance on UPnP or similar is ineffective. One solution might be to reuse the root nodes as ICE servers for nodes which are known to be unable to open ports to the outside world.
+
+\section{Appendix A: Model checking methods}
+
+\section{Appendix B: Reference implementation}
 
 \nocite{*}
 
 \bibliographystyle{plain}
 \bibliography{gossip}
-
-\section{Appendix A: Model checking methods}
-
-\section{Appendix B: Reference implementation}
 
 \end{document}
