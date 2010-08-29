@@ -34,6 +34,41 @@
 
 \begin{document}
 
+\section{Introduction}
+
+gossip algorithms, first introduced?, examples and uses
+
+define pss, should be easy to analyse (point to paper describing approaches) but no succesfull analysis of pss distribution
+
+2 background and examine cyclon, a simple well-studied algorithm
+
+3 will describe our general approach and introduce the necessary mathematics
+
+4 describe a centralised algorithm for providing independent, uniformly distributed peer selections
+
+5 discuss balancing the load of the centralised algorithm across multiple nodes
+
+6 introduce a fully distributed version of the previous algorithm
+
+7 we investigate the algorithms resilience to random failure
+
+8 present a reference implementation and test results
+
+9 conclusion?
+
+\section{Background}
+
+examine cyclon and look at examples of difficult analysis
+
+define pss properly, compare to entropy pool in /dev/random
+
+cyclon is conflating view and pss
+cyclon use fixed time intervals so must account for interleaving
+
+\section{Approach}
+
+an example in nature: radioactive decay. the algorithm developed here will 
+
 \section{Implementing a uniform PSS}
 
 Pick some root node $R$, whose address is known to all other nodes. Every other node behaves as an independent poisson process sending messages to the root node at a rate $\lambda$. Let $R_i$ be the sender of the $i$th message to arrive at the root node. By the merging property the sequence $R_i$ forms a possion process of rate $n \lambda$ and each $R_i$ is an independent uniform random choice from the set of all nodes.
@@ -260,5 +295,19 @@ Translating to the jump process is still straightforward.
 !!! maybe talk about time before uniform distribution
 
 Reassuringly, all of our tests now pass and we have a simple, distributed peer selection service with strong guarantees on the distribution of peer selections. 
+
+\section{Dealing with failure}
+
+\section{A reference implementation}
+
+\section{Conclusion}
+
+have produced a gossip algorithm which is simple, easy to implement and resilient to random failure and churn. the peer selection service produced by the algorithm generates independent, uniformly distributed peer selections when in the steady state. as fair as the author is aware this is the first gossip algorithm to make \em{any} predictions whatsoever about the behaviour of its peer selection service.
+
+suitable for private networks eg within a data centre. as it is, probably not suitable for untrusted peers - too easy to poison or otherwise sabotage. also - frequent small messages to lots of different peers so nat negotiation will be a bitch. future work: investigate resistance to malicious atttack, in particular investigate ways of throttling malicious peers without damaging the nice properties, large-scale experiments on open networks (cf ARRG) with other algorithms consuming the pss
+
+\section{Appendix A: Model checking !!! stuff}
+
+\section{Appendix B: Reference implementation}
 
 \end{document}
