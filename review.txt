@@ -75,3 +75,5 @@ Needs proper read to determine if this is anything new
 Analysis of a Gossip Protocol in PRISM
 Only really useful for small networks, I think
 Could maybe use PRISM for mean-field analysis instead
+
+Astrolabe: A Robust and Scalable Technology for Distributed System Monitoring, Management, and Data Mining. Robbert van Renesse, Kenneth Birman and Werner Vogels. ACM Transactions on Computer Systems

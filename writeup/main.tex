@@ -36,37 +36,49 @@
 
 \section{Introduction}
 
-Gossip algorithms are an important tool in many peer-to-peer systems. Whilst there are a number of related algorithms that are referred to as gossip algorithms, \cite{pss} defines a core common to almost all of these: the peer sampling service (PSS). This service provides each node with a random selection of other nodes to gossip with. 
+Gossip (or epidemic) algorithms are an important tool in many peer-to-peer systems. Whilst there are a number of related algorithms that are referred to as gossip algorithms, \cite{pss} defines a core common to almost all of these: the peer sampling service (PSS). This service provides each node with a random selection of other nodes to gossip with. 
 
-\cite{formal_analysis} argues that one of the main points in favour of using gossip algorithms to build distributed systems is that their simplicity makes them amenable to formal analysis. Despite this, no formal analysis of a peer sampling service has been produced. Many empirical studies have been conducted \cite{pss, formal_analysis}, in particular \cite{pss} demonstrates that many of the assumptions commonly made about the behaviour of the peer sampling service do not hold in practice. It has also been noted \cite{pss, arrg} that the behaviour of gossip algorithms is often highly sensitive to small changes. Finally, many gossip algorithms have turned out to be surprisingly susceptible to malicious attack \cite{poison, poison_buddycast, poison_buddycast2, poison_mosquito, poison_antimosquito}. For these reasons it would be beneficial to have a stronger theoretical foundation to work from.
+It is argued in \cite{formal_analysis} that one of the main points in favour of using gossip algorithms to build distributed systems is that their simplicity makes them amenable to formal analysis. Despite this, no formal analysis of a peer sampling service has been produced. Many empirical studies have been conducted \cite{pss, formal_analysis}, in particular \cite{pss} demonstrates that many of the assumptions commonly made about the behaviour of peer sampling services do not hold in practice. It has also been noted \cite{pss, arrg, how_robust, emergent_gossip} that the behaviour of gossip algorithms is often highly sensitive to small changes. Finally, many gossip algorithms have turned out to be surprisingly susceptible to malicious attack \cite{poison, poison_buddycast, poison_mosquito, poison_antimosquito}. For these reasons it would be beneficial to have a stronger theoretical foundation to work from.
 
 In this dissertation we will present a peer sampling service for which we can make strong theoretical guarantees about its behaviour. Section 2 discusses related work and presents cyclon as a well-studied example of a gossip algorithm. Section 3 describes our general approach and introduces the necessary mathematics. Section 4 describes a centralised algorithm for providing independent, uniformly distributed peer samples. Section 5 discusses balancing the load of the centralised algorithm across multiple nodes. Section 6 introduces a fully distributed version of the previous algorithm. Section 7 investigates the algorithms resilience to random failure and churn. Section 8 presents a reference implementation and test results. Finally section 9 presents a conclusion and discusses future extensions.
 
-\section{Related work}
+\section{Background}
 
-what is a gossip algorithm?
+Gossip algorithms have been used for a wide variety of tasks, including overlay construction \cite{cyclon}, database replication \cite{database_replication}, failure detection \cite{failure_detection}, resource monitoring \cite{astrolabe}, distributed search/recommendation \cite{tribler}, reputation tracking \cite{reputation} and multicast messaging \cite{multicast}. 
 
-list examples of gossip algorithms in use
+Recently there has been a flurry of work aimed at rigourous analysis of these algorithms. These can be divided roughly into two groups: those studying the design and theoretical limitations of gossip algorithms operating on a fixed overlay, typically in the context of wireless devices \cite{sensorish1, sensorish2}, and those attempting to model the behaviour of gossip algorithms on dynamic, unstructured overlays \cite{generic_theory, mean_field, gossip_prism, correctness, random_scheduling}. We are interested here in the latter. Despite the amount of attention it has turned out to be very difficult to analyse such algorithms. 
 
-database repli-
-cation [26], but more recently also for failure detection [70],
-and resource monitoring [69]
+\section{Approach}
 
+We will argue that there are several properties of existing gossip algorithms that makes them fundamentally difficult to analyse.
 
-examples of partial models, copy to cite in intro
+The first of these is the use of fixed delays between actions at a single node. This causes complex scheduling of events across the network. In \cite{random_scheduling} the author begins by assuming that actions are scheduled randomly across the network. The resulting predictions are shown to be incorrect and the author is forced to move to a more complicated mathematical model. It is not difficult to arrange that events are scheduled uniformly at random across the network and this makes modelling much simpler.
 
-examine cyclon \cite{cyclon} and look at examples of difficult analysis
+The second is conflation of subsystems within an algorithm. Most gossip algorithms are presented as a single monolithic algorithm whereas it would be simpler to consider them as separate layers performing different functions. For example, in Cyclon and similar algorithms the network view and the peer sampling service are combined in a single data structure and both are updated simultaneously. It has been recognised \cite{pss, generic_theory} that the separation of these jobs is a natural simplification. Here we will concentrate entirely on the peer sampling service as a system providing a stream of random peer samples over time. Other subsystems, such as the network view, can be built as consumers of this stream.
 
-\section{Inspiration}
+The third, and somewhat vague, problem is that interactions between nodes are too complicated. We will show that the view shuffling used in most gossip algorithms is unnecessary - a peer sampling service can be produced without being aware of the network view at all.
 
-define pss properly, compare to entropy pool in /dev/random
+Our inspiration for this algorithm comes from a natural example: radioactive decay. A group of radioactive atoms decays in a uniformly random order. That is, each atom has an equal probability to be the next atom to decay. This does not require any interaction between the atoms. It is a simple consequence of the exponential distribution of decay times.
 
-cyclon is conflating view and pss
-cyclon use fixed time intervals so must account for interleaving
+The exponential distribution is governed by the probability distribution function $ f(x)=\lambda e ^ { - \lambda x } $. This distribution has a number of interesting properties. It is memoryless: given $ E \sim Exp(\lambda) $ we can prove that $ P(E>a+b \;|\; E>a) = P(E>b) $. Given two such variables $ E_1 \sim Exp(\lambda) $ and $ E_2 \sim Exp(\mu) $ we can prove that $ min(E_1,E_2) \sim Exp(\lambda + \mu) $ and $ P(E_1 < E_2) = \lambda / (\mu + \lambda) $. These properties can be naturally extended to more than two variables. 
 
-an example in nature: radioactive decay.
+We can see now why atoms decay randomly. Since they all have the same distribution they all have the same probability to be the first to decay. Once one atom has decayed the memoryless property means that we can 'reset' all the decay times.
 
-talk about exponential distribution, poisson process. state and reference thinning and merging properties
+For repeated actions we want to deal with a poisson process. A poisson process is a sequence of decay times for a given exponential distribution. More formally, given decay times $S_i \sim Exp(\lambda), \; i>0 $ the poisson process with rate $ \lambda $ is the sequence $ T_i = \sum_{k=0}^i S_k $. It is often useful to associate a set of random events $E_i$ with the process, so that the event $E_i$ is considered to have occurred at time $T_i$. 
+
+Like the exponential distribution this process is memoryless - it looks the same starting from any point. It also has two properties which we will use repeatedly. The merging property governs interleaving two different poisson processes in a single process. The thinning property governs splitting a single poisson process into two independent processes.
+
+\newtheorem*{merging}{Merging}
+\begin{merging}
+Given independent poisson processes $U=\{U_i | i \geq 0\}$ and $V=\{V_i | i \geq 0\}$ with rates $\lambda$ and $\mu$ respectively. WLOG let $U_0 < V_0$. Define the merging \;$T = merge(U,V)$\; of these processes recursively as follows: $T_0 = U_0$, $\{T_i \;|\; i>0\} = merge(\{U_i \;|\; i>0\}, V)$. Then $T$ is a poisson process with rate $\lambda + \mu$. Define $E_i$ to be $0$ if $T_i$ was drawn from $U$ and $1$ otherwise. Then the random variables $\{E_i \;|\; i \geq 0\}$ are independent and $E_i \sim Bin(\lambda / (\lambda + \mu))$. 
+\end{merging}
+ 
+\newtheorem*{thinning}{Thinning}
+\begin{thinning}
+Given a poisson process $T$ with rate $\lambda$ and a set $E_i$ of independent random binary variables $E_i ~ Bin(p)$. Define $U = \{T_i \;|\; E_i = 0, \; i \geq 0\}$ and $V = \{T_i \;|\; E_i = 1, \; i \geq 0\}$. Then $U$ and $V$ are independent poisson process with rates $\lambda p$ and $\lambda (1-p)$ respectively.
+\end{thinning}
+
+Both the merging and thinning properties can be extended in the natural way to deal with more than two poisson processes.
 
 \section{Implementing a uniform PSS}
 
@@ -274,7 +286,7 @@ BSCC sizes: 1:683 2:15 3:15 4:15 5:1
 
 !!! stuff. 
 
-This is reminiscent of the random surfer problem, in which a person surfs the web by randomly following hyperlinks. The resulting markov chain has the same structure as the underlying hyperlink graph. If the hyperlink graph is not connected or if it has periodic states then the resulting markov chain will not have a well defined steady state. The solution is to add an arbitrarily small probability that the user will jump to page selected uniformly at random. This transition unifies unconnected states and removes periodicity. Our problem can be fixed in a similar manner by adding a arbitrarily small probability of contacting one of the known root nodes.
+This is reminiscent of the random surfer problem !!!cite, in which a person surfs the web by randomly following hyperlinks. The resulting markov chain has the same structure as the underlying hyperlink graph. If the hyperlink graph is not connected or if it has periodic states then the resulting markov chain will not have a well defined steady state. The solution is to add an arbitrarily small probability that the user will jump to page selected uniformly at random. This transition unifies unconnected states and removes periodicity. Our problem can be fixed in a similar manner by adding an arbitrarily small probability of contacting one of the known root nodes.
 
 \prismmodel{ctmc_full}
 
