@@ -309,6 +309,10 @@ Reassuringly, all of our tests now pass and we have a simple, distributed peer s
 
 \section{Dealing with failure}
 
+failure - prob p of message failure. 2 messages per exchange. short timeout for reply. if 1st fails, talk to root instead. mention caching from view as an alternate strategy. if second fails end up messaging the same node twice. should be a big deal
+
+churn - model as low rate of switching on and off. messaging to an off node fails. node0 does not turn off, being a root. turn back on with last node we remember (larger state space) or just talking to root (smaller state space, can also model new joining vs on/off 
+
 \section{Reference implementation}
 
 \section{Conclusion}
