@@ -319,9 +319,15 @@ churn - model as low rate of switching on and off. messaging to an off node fail
 
 We presented a gossip algorithm which is simple, easy to implement and resilient to random failure and churn. The peer sampling service produced by this algorithm generates independent, uniformly distributed peer samples when in the steady state. This analysis is backed up both by formal verification using the PRISM model checker and by experimental results. As far as the author is aware this is the first gossip algorithm to make \em any \em guarantees whatsoever about the behaviour of its peer sampling service.
 
+!!! talk about proving that all selections are independent. cite the one that proves this is not true in some algorithms. intuitively values independent but difficult to prove because of dependence on times. but present values also pairwise independent and probably independent in general.
+
 This algorithm is suitable for use with trusted peers, for example within a data centre. Without further work it is not suitable for use with untrusted peers as it is susceptible to poisoning or other malicious behaviour. Future work could include identifying and managing malicious peers. In particular, it should be possible to rate-limit malicious peers without damaging the useful properties of the peer sampling service. This would go a long way towards preventing poisoning. Given the simplicity of this algorithm it may be even be possible to prove that specific classes of attacks will not work.
 
+!!! talk about use in unreliable networks -- extra reliance on root. try modelling caching in this model. or at least tradeoff between caching and uniform distribution
+
 In addition, the use of frequent small messages to lots of different peers makes it difficult to perform NAT negotiation efficiently. Large scale uses of gossip algorithms have often found that NAT negotiation is essential - reliance on UPnP or similar is ineffective. One solution might be to reuse the root nodes as ICE servers for nodes which are known to be unable to open ports to the outside world.
+
+!!! use of prism. mostly good. dont like the language. needs more abstraction capabilities. especially needs arrays. would benefit from distributions (give eg). point to eg pfp or olegs continuation stuff. would like steady state probs which arent binary. refer to this in centralised section 
 
 \section{Appendix A: Model checking methods}
 
