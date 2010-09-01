@@ -37,7 +37,7 @@ def sim(model, props):
     with open('props.pctl', 'w') as file:
         props_content = 'const int T;\n' + '\n'.join(map(str,props))
         file.write(props_content)
-    output = commands.getoutput("prism model.sm props.pctl -sim -simconf 0.1 -simapprox 0.01 -const T=500:500:1000")
+    output = commands.getoutput("prism model.sm props.pctl -sim -simconf 0.5 -simapprox 0.01 -const T=200")
     results = output.split('-' * 43)[2:]
     if len(results) != len(props):
         raise PrismError("Results mismatch\n\n" + output)
