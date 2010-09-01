@@ -132,10 +132,6 @@ P(&N_i = M) \\
 
 \end{proof}
 
-\begin{thm}The sampling times $T^N_i$ form a poisson process with rate $\lambda$, starting from time $\lambda$?\end{thm}
-
-proof: thinning property? !!!
-
 The system as a whole forms a continuous-time markov chain. Using the PRISM model checker we can provide an explicit and unambigous description of this algorithm and verify the desired properties.
 
 \prismmodel{ctmc_single}
@@ -154,7 +150,7 @@ P=? [ F[T,T] node0=2 ]
 \end{lstlisting}
 \end{prismprop}
 
-Or we could test the same thing in the steady state:
+Or we could test the same thing in the steady-state:
 
 \begin{prismprop}
 \begin{lstlisting}
@@ -164,7 +160,7 @@ S=? [ node0=2 ]
 \end{lstlisting}
 \end{prismprop}
 
-Whilst these are nice properties to have neither of them are quite the same as saying that $N_i$ are uniformly distributed. The problem is that each $N_i$ is associated with a transition whereas the properties above are associated with points in time. It is awkward to specify PRISM properties relating to transitions when using a CTMC model. One workaround is to use transition rewards but this brings its own problems. Transition rewards have no meaning in the steady state and cannot be calculated by the PRISM simulator which makes working with large models impossible.
+Whilst these are nice properties to have neither of them are quite the same as saying that $N_i$ are uniformly distributed. The problem is that each $N_i$ is associated with a transition whereas the properties above are associated with points in time. It is awkward to specify PRISM properties relating to transitions when using a CTMC model. One workaround is to use transition rewards but this brings its own problems. Transition rewards have no meaning in the steady-state and cannot be calculated by the PRISM simulator which makes working with large models impossible.
 
 A simpler solution is to ignore transition times altogether and work with the jump process - the deterministic-time markov chain corresponding to the transitions of the CTMC. The translation is straightforward:
 
@@ -172,7 +168,7 @@ A simpler solution is to ignore transition times altogether and work with the ju
 
 Notice that the choice of which node will next send a message to the root has been made explicit. Also the 'Past' module has been added which tracks the last value of each variable. This makes it easy to identify peer samples. For example, if next\_past is 0 then node0 is a new peer sampling, replacing the previous sampling node0\_past.
 
-Now we can directly test that the distribution of peer samples at a given node is uniform in the steady state. The following must all be equal:
+Now we can directly test that the distribution of peer samples at a given node is uniform in the steady-state. The following must all be equal:
 
 \begin{prismprop}
 \begin{lstlisting}
@@ -253,9 +249,9 @@ We can reuse all the properties tested for the original algorithm without out ch
 
 This alleviates some of the load on the root and makes the network more resilient but we still have a predetermined set of root nodes to which we cannot add or remove nodes. Examining the proof above, the only reason that the set of root nodes needs to be known is in order to make a random sampling from it. These samples are required to be uniformly distributed and independent. What we need is a peer sampling service for the root nodes.
 
-The solution is to feed the output of the algorithm back in. Each node can also act as a root node. The system is bootstrapped from a known set of root nodes so that each node has generated at least one peer sampling. Then these independent uniform peer samples are used to choose which node to contact next to receive a new peer sampling. !!! importantly, the output of the root nodes in independent of the root input so the peer samples continue to be suitable for use as independent choices of root node.
+The solution is to feed the output of the algorithm back in. Each node can also act as a root node. The system is bootstrapped from a known set of root nodes so that each node has generated at least one peer sampling. Then these independent uniform peer samples are used to choose which node to contact next to receive a new peer sampling.
 
-This seems intuitively correct but there are a number of subtle implementation details that have been glossed over. For example, will uniform sampling still hold if some nodes start acting as root nodes before others have bootstrapped? Rather than go into detail we will simply use the PRISM model as the !!! exact specifier majiggy !!!
+This seems intuitively correct but there are a number of subtle details that have been glossed over. For example, is the output of the peer sampling service independent of the input choices? Will uniform sampling still hold if some nodes start acting as root nodes before others have bootstrapped? We can check our intuition with PRISM.
 
 \prismmodel{ctmc_broken}
 
@@ -263,19 +259,19 @@ Again, it is useful to work with the jump process as well.
 
 \prismmodel{dtmc_broken}
 
-!!! find, for both the CTMC and the DTMC:
+PRISM quickly reveals that there is a problem with this algorithm. We find, for both the CTMC and the DTMC:
 
 \begin{prismprop}
 \begin{lstlisting}
-S=? [ node0=0 ]  0.31186...
-S=? [ node0=1 ]  0.34407...
-S=? [ node0=2 ]  0.34407...
+S=? [ node0=0 ] = 0.31186...
+S=? [ node0=1 ] = 0.34407...
+S=? [ node0=2 ] = 0.34407...
 \end{lstlisting}
 \end{prismprop}
 
 This is well outside the bounds of numerical error. What went wrong? 
 
-!!! something about reachable states
+The algorithm assumes that the output of the peer sampling service is independent of the input choices. This is not entirely true. There is a small dependency between the two caused by the fact that not all states in the model are reachable from the initial state. For example, the state where node0=0, node1=1, node2=2, root0=0, root1=1, root2=2 is not reachable from any other state nor can any state be reached from there. Knowing the state of node0 therefore gives some knowledge about the state of node1 and node2. When building the model PRISM reports the extent of the problem:
 
 \begin{prismprop}
 \begin{lstlisting}
@@ -284,9 +280,7 @@ BSCC sizes: 1:683 2:15 3:15 4:15 5:1
 \end{lstlisting}
 \end{prismprop}
 
-!!! stuff. 
-
-This is reminiscent of the random surfer problem !!!cite, in which a person surfs the web by randomly following hyperlinks. The resulting markov chain has the same structure as the underlying hyperlink graph. If the hyperlink graph is not connected or if it has periodic states then the resulting markov chain will not have a well defined steady state. The solution is to add an arbitrarily small probability that the user will jump to page selected uniformly at random. This transition unifies unconnected states and removes periodicity. Our problem can be fixed in a similar manner by adding an arbitrarily small probability of contacting one of the known root nodes.
+This is reminiscent of the random surfer problem \cite{random_surfer}, in which a person surfs the web by randomly following hyperlinks. The resulting markov chain has the same structure as the underlying hyperlink graph. If the hyperlink graph is not connected or if it has periodic states then the resulting markov chain will not have a well defined steady-state. The solution is to add an arbitrarily small probability that the user will jump to page selected uniformly at random. This transition unifies unconnected states and removes periodicity. Our problem can be fixed in a similar manner by adding an arbitrarily small probability of contacting one of the known root nodes.
 
 \prismmodel{ctmc_full}
 
@@ -303,13 +297,11 @@ Translating to the jump process is still straightforward.
 
 \prismmodel{dtmc_full}
 
-!!! maybe talk about time before uniform distribution
-
 Reassuringly, all of our tests now pass and we have a simple, distributed peer sampling service with strong guarantees on the distribution of peer samples. 
 
 \section{Dealing with failure}
 
-failure - prob p of message failure. 2 messages per exchange. short timeout for reply. if 1st fails, talk to root instead. mention caching from view as an alternate strategy. if second fails end up messaging the same node twice. should be a big deal
+failure - prob p of message failure. 2 messages per exchange. short timeout for reply. sender talks to root on failure. if 1st fails, receiver doesnt care. if 2nd fails receiver get the update. mention caching from view as an alternate strategy. if second fails end up messaging the same node twice. shouldnt be a big deal
 
 churn - model as low rate of switching on and off. messaging to an off node fails. node0 does not turn off, being a root. turn back on with last node we remember (larger state space) or just talking to root (smaller state space, can also model new joining vs on/off 
 
@@ -317,17 +309,17 @@ churn - model as low rate of switching on and off. messaging to an off node fail
 
 \section{Conclusion}
 
-We presented a gossip algorithm which is simple, easy to implement and resilient to random failure and churn. The peer sampling service produced by this algorithm generates independent, uniformly distributed peer samples when in the steady state. This analysis is backed up both by formal verification using the PRISM model checker and by experimental results. As far as the author is aware this is the first gossip algorithm to make \em any \em guarantees whatsoever about the behaviour of its peer sampling service.
+We presented a gossip algorithm which is simple, easy to implement and resilient to random failure and churn. The peer sampling service produced by this algorithm at each node generates independent, uniformly distributed peer samples when in the steady-state. This analysis is backed up both by formal verification using the PRISM model checker and by experimental results. As far as the author is aware this is the first gossip algorithm to make \em any \em guarantees whatsoever about the behaviour of its peer sampling service.
 
-!!! talk about proving that all selections are independent. cite the one that proves this is not true in some algorithms. intuitively values independent but difficult to prove because of dependence on times. but present values also pairwise independent and probably independent in general.
+We have proved that the samples at each node are independent and we have demonstrated in PRISM that the most recent samples for any pair of nodes are independent. It seems likely that in fact all the peer samples across all nodes are independent. The proof of this, however, has been elusive because the peer samples together with their ordering in time are \em not \em independent (eg if node7 was the last node to produce a peer sample then the next sample is more likely to be 7). If we had chosen a notation that was more easily divorced from the timings this might have been easier to prove.
 
 This algorithm is suitable for use with trusted peers, for example within a data centre. Without further work it is not suitable for use with untrusted peers as it is susceptible to poisoning or other malicious behaviour. Future work could include identifying and managing malicious peers. In particular, it should be possible to rate-limit malicious peers without damaging the useful properties of the peer sampling service. This would go a long way towards preventing poisoning. Given the simplicity of this algorithm it may be even be possible to prove that specific classes of attacks will not work.
 
-!!! talk about use in unreliable networks -- extra reliance on root. try modelling caching in this model. or at least tradeoff between caching and uniform distribution
+In unreliable networks extra load is placed on the root nodes proportional to the rate of message failure. This is handled naively in the current algorithm for the sake of easy modelling. Most gossip algorithms in large scale networks cache previously seen nodes and reuse these addresses in the case of failure. It would be useful to model the tradeoff between increased robustness and the uniform distribution of peer samples when using this strategy.
 
-In addition, the use of frequent small messages to lots of different peers makes it difficult to perform NAT negotiation efficiently. Large scale uses of gossip algorithms have often found that NAT negotiation is essential - reliance on UPnP or similar is ineffective. One solution might be to reuse the root nodes as ICE servers for nodes which are known to be unable to open ports to the outside world.
+The use of frequent small messages to lots of different peers makes it difficult to perform NAT negotiation efficiently. Large scale uses of gossip algorithms have often found that NAT negotiation is essential \cite{arrg, tribler} - reliance on UPnP or similar is ineffective. One solution might be to reuse the root nodes as ICE servers for nodes which are known to be unable to open ports to the outside world.
 
-!!! use of prism. mostly good. dont like the language. needs more abstraction capabilities. especially needs arrays. would benefit from distributions (give eg). point to eg pfp or olegs continuation stuff. would like steady state probs which arent binary. refer to this in centralised section 
+The use of PRISM was essential in the experimental phases of this work. The ability to quickly test properties and iron out problems before attempting proofs saved a lot of wasted time and effort. For the problems in section 6 especially, where PRISM was used to detect subtle dependencies between peer samples at different nodes, this was invaluable. However there were a number of frustrating difficulties with using PRISM. The main problem was the model description language which lacks any real abstraction capabilities. This resulted in relying on scripts to generate enourmous model descriptions which was error-prone. It also made it difficult to combine different modifications to models such as churn and message failure. This would have been fairly trivial in a full programming language. Even the availability of arrays in the language would have made the models in this dissertation massively simpler. There are a number of examples of embedding probabilistic description languages into existing programming languages \cite{pfp, ocaml_cont}. It would be worth investigating whether one of these could be connected directly to the PRISM engine. Another annoyance was that the steady-state operator S=? can only handle binary properties when it seems it should be trivial to handle any quantitive property. We had to resort instead to tracking the past value of each variable explicitly. Finally, the generation of jump processes by hand is tedious and error-prone. It should be possible for PRISM to handle this translation automatically.
 
 \section{Appendix A: Model checking methods}
 
