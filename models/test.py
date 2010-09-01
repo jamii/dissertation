@@ -36,7 +36,7 @@ def dtmc_tests(model_gen):
 
 def base_tests_sim(model_gen):
     print "Base tests (simulator)"
-    for n in [5,10,20]:
+    for n in [10,20]:
         model = model_gen(n)
         #for node in range(0,n):
         node = 1
@@ -48,11 +48,37 @@ def base_tests_sim(model_gen):
 
 def dtmc_tests_sim(model_gen):
     print "DTMC tests (simulator)"
-    for n in [5,10,20]:
+    for n in [10,20]:
         model = model_gen(n)
         #for node in range(0,n):
         node = 1
         test_equalish(prism.sim(model+node_past_reward(node, n), node_past_r(node, n)), tolerance=0.02)
+
+def remove_roots(props, n):
+    """Testing message failure requires removing reference to the root node from the list of properties.
+    We do this in the most hackish way possible."""
+    # remove props on root
+    props = props[n:]
+    # remove props referring to root
+    result = []
+    for i in range(1,n):
+        result.extend(props[i::n])
+    return result
+
+def error_tests():
+    print "Error tests (model checker)"
+    for p in [0.01, 0.1]:
+        node = 1
+        node2 = 2
+        for n in [3,5]:
+            model = ctmc_full_error(n)
+            test_equalish(prism.run(model, node_dist(node, n))[1:], tolerance=0.02)
+            test_equalish(prism.run(model, remove_roots(node_inter(node, node2, n),n)), tolerance=0.02)
+        for n in [10,20]:
+            model = ctmc_full_error(n)
+            test_equalish(prism.sim(model+node_dist_reward(node, n), node_dist_r(node, n)[1:]), tolerance=0.02)
+            test_equalish(prism.sim(model+node_inter_reward(node, node2, n), remove_roots(node_inter_r(node, node2, n))), tolerance=0.02)
+            
 
 ctmcs = [ctmc_single, ctmc_multiple, ctmc_full]
 dtmcs = [dtmc_single, dtmc_multiple, dtmc_full]
@@ -64,6 +90,8 @@ def all_tests():
     for model in dtmcs:
         dtmc_tests(model)
         dtmc_test_sim(model)
+    error_tests()
 
 if __name__ == '__main__':
-    all_tests()
+    #all_tests()
+    error_tests()

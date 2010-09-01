@@ -167,13 +167,10 @@ const double mu = %s;
 const double p = %s;
 """ % (mu, p)
     def clause(node, root):
-        if node == root:
-            return "  [] (node%s=%s) -> lambda:(root%s'=%s)&(node%s'=root%s);" % (node,root,root,node,node,root)
-        else:
             return "  [] (node%s=%s) -> (1-p)*(1-p)*lambda:(root%s'=%s)&(node%s'=root%s) + (1-p)*p*lambda:(root%s'=%s)&(node%s'=0) + p*lambda:(node%s'=0);" %  (node,root,root,node,node,root,root,node,node,node)
     def clauses(node):
         normal = '\n'.join([clause(node,root) for root in range(0,n)])
-        default =  "  [] true -> (1-p)*(1-p)*mu:(root0'=%s)&(node%s'=root0) + (1-p)*p*mu:(root0'=%s) + p*mu:(root0'=root0);" % (node, node, node)
+        default =  "  [] true -> (1-p)*(1-p)*mu:(root0'=%s)&(node%s'=root0) + (1-p)*p*mu:(root0'=%s);" % (node, node, node)
         return normal + "\n" + default
     transition = """
   //node%s contacts the root and receives a new peer selection
