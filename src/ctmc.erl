@@ -1,6 +1,6 @@
 -module(ctmc).
 
--export([start/2, interrupt/2, get_state/1, with_state/2, poll_state/3]).
+-export([start/2, call/2]).
 -export([behaviour_info/1]).
 
 -behaviour(gen_server).
@@ -10,7 +10,7 @@
 -define(SERVER, ?MODULE).
 
 behaviour_info(callbacks) ->
-    [{init,1},{events,1},{handle_event,2},{handle_interrupt,2}];
+    [{init,1},{events,1},{handle_event,2},{handle_call,2}];
 
 behaviour_info(_Other) ->
     undefined.
@@ -20,17 +20,12 @@ behaviour_info(_Other) ->
 start(Module, Args) ->
     gen_server:start(?MODULE, [Module, Args], []).
 
-interrupt(Ctmc, Interrupt) ->
-    gen_server:cast(Ctmc, {interrupt, Interrupt}).
-
-get_state(Ctmc) ->
-    gen_server:call(Ctmc, get_state).
-
-with_state(Ctmc, F) ->
-    F(get_state(Ctmc)).
-
-poll_state(Ctmc, Interval, F) ->
-    timer:apply_interval(Interval, ctmc, with_state, [Ctmc, F]).
+call(Ctmc, Call) ->
+    try
+	{ok, gen_server:call(Ctmc, Call, 1000)}
+    catch
+	_:{timeout,_} -> timeout
+    end.
 
 % gen_server callbacks
 
@@ -40,19 +35,22 @@ init([Module, Args]) ->
     {Next_event, Timeout} = next_event(Module, State),
     {ok, #ctmc{module=Module, state=State, next_event=Next_event}, Timeout}.
 
-handle_call(get_state, _From, #ctmc{module=Module, state=State}=Ctmc) ->
-    {Next_event, Timeout} = next_event(Module, State),
-    {reply, State, Ctmc#ctmc{next_event=Next_event}, Timeout}.
-
-handle_cast({interrupt, Interrupt}, #ctmc{module=Module, state=State}=Ctmc) ->
-    State2 = Module:handle_interrupt(State, Interrupt),
+handle_call(Call, _From, #ctmc{module=Module, state=State}=Ctmc) ->
+    {State2, Reply} = Module:handle_call(State, Call),
     {Next_event, Timeout} = next_event(Module, State2),
-    {noreply, Ctmc#ctmc{state=State2, next_event=Next_event}, Timeout}.
+    {reply, Reply, Ctmc#ctmc{state=State2, next_event=Next_event}, Timeout}.
+
+handle_cast(_Cast, _Ctmc) ->
+    ok.
 
 handle_info(timeout, #ctmc{module=Module, state=State, next_event=Next_event}=Ctmc) ->
     State2 = Module:handle_event(State, Next_event),
     {Next_event2, Timeout} = next_event(Module, State2),
-    {noreply, Ctmc#ctmc{state=State2, next_event=Next_event2}, Timeout}.
+    {noreply, Ctmc#ctmc{state=State2, next_event=Next_event2}, Timeout};
+
+handle_info(_, #ctmc{module=Module, state=State}=Ctmc) ->
+    {Next_event, Timeout} = next_event(Module, State),
+    {noreply, Ctmc#ctmc{next_event=Next_event}, Timeout}.
 
 terminate(_Reason, _State) ->
   ok.
