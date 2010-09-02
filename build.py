@@ -3,8 +3,6 @@ from models.gen_model import *
 def write_model(name, contents):
     with open('models/' + name + '.sm', 'w') as file:
         file.write(contents)
-    with open('writeup/' + name + '.sm', 'w') as file:
-        file.write(contents)
 
 def main():
     write_model("dtmc_single_no_past", dtmc_single(3, use_past=False))
