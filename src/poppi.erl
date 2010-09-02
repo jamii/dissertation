@@ -76,7 +76,8 @@ log(Format, Args) ->
     io:format(Format, Args).
 
 log_sample(Sample) ->
-    log("Sample ~w~n", [Sample]).
+    {_,Seconds,_} = erlang:now(),
+    log("~w: ~w~n", [Seconds, Sample]).
 
 choice(List) ->
     case length(List) of
