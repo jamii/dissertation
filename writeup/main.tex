@@ -226,15 +226,22 @@ One change we should be careful to note is that in the previous algorithm the fi
 
 Define $I_N$ to be the point at which at least two messages have been sent from $N$ to each peer node.
 
-thm: $E(I_N) <=$ 
+\begin{thm}$E(I_N) \leq \frac{2kn}{n-k+1}$\end{thm}  
 
-Define $J_N$ to be the point at which at least one message has been sent from $N$ to each peer node.
+\begin{proof}
+Define $J^k_N$ to be the point at which node $N$ has sent at least one message to k different nodes.
 
-$$
-P(J_N = j)
-= !!! can afford not to prove this
-$$
- 
+\begin{align*}
+E(J^k_N) &= E(J^k_N + (J^{k-1}_N - J^{k-1}_N) + ... + (J^1_N - J^1_N)) \\
+  &= E(J^k_N - J^{k-1}_N) + E(J^{k-1}_N - J^{k-2}_N) + ... + E(J^2_N - J^1_N) + E(J^1_N) \\
+  &= \frac{n}{n-k+1} + \frac{n}{n-k+2} + ... + \frac{n}{n-1} + \frac{n}{n} \\
+  &\leq k\frac{n}{n-k+1} \\
+E(I_N) & \;\leq\; 2 E(J^k_N) \;\leq\; 2k\frac{n}{n-k+1} \\
+\end{align*}
+\end{proof}
+
+Note though that before $I_N$ is reached the peer samples at $N$ will still be uniformly distributed across all nodes except $N$ and the expected number of messages sent before the first peer sample is generated is only $\frac{k}{n}$.
+
 We can model this new algorithm in PRISM:
 
 \prismmodel{ctmc_multiple}
@@ -297,7 +304,7 @@ Translating to the jump process is still straightforward.
 
 \prismmodel{dtmc_full}
 
-Reassuringly, all of our tests now pass and we have a simple, distributed peer sampling service with strong guarantees on the distribution of peer samples. 
+Reassuringly, all of our tests now pass and we have a simple, distributed peer sampling service with strong guarantees on the distribution of peer samples.
 
 \section{Dealing with failure}
 
@@ -345,7 +352,9 @@ Again, falling back to the centralised algorithm increases load on the known roo
 
 \section{Conclusion}
 
-We presented a gossip algorithm which is simple, easy to implement and resilient to random failure and churn. The peer sampling service produced by this algorithm at each node generates independent, uniformly distributed peer samples when in the steady-state. This analysis is backed up both by formal verification using the PRISM model checker and by experimental results. As far as the author is aware this is the first gossip algorithm to make \em any \em guarantees whatsoever about the behaviour of its peer sampling service.
+We presented a gossip algorithm which is simple, easy to implement and resilient to random failure and churn. The peer sampling service produced by this algorithm at each node generates independent, uniformly distributed peer samples when in the steady-state. This analysis is backed up both by formal verification using the PRISM model checker and by experimental results on a single machine. As far as the author is aware this is the first gossip algorithm to make \em any \em guarantees whatsoever about the behaviour of its peer sampling service.
+
+This algorithm has so far only been tested on a small number of machines. Given the sensitive timings involved it would be prudent to test this on a large network to ensure that network delays etc do not damage the results.
 
 We have proved that the samples at each node are independent and we have demonstrated in PRISM that the most recent samples for any pair of nodes are independent. It seems likely that in fact all the peer samples across all nodes are independent. The proof of this, however, has been elusive because the peer samples together with their ordering in time are \em not \em independent (eg if node7 was the last node to produce a peer sample then the next sample is more likely to be 7). If we had chosen a notation that was more easily divorced from the timings this might have been easier to prove.
 
