@@ -365,6 +365,12 @@ Again, falling back to the centralised algorithm increases load on the known roo
 
 \section{Reference implementation}
 
+Included in Appendix B is a simple reference implementation in erlang, a high-level interpreted language. The simplicity of the algorthim is reflected in the fact that the entire implementation is under 200 lines of code including a generic implementation of continuous time markov chains. Our implementation uses the builtin erlang messaging system but replacing this with raw UDP would take only a few more lines since the message format is so simple. 
+
+With $\lambda=0.1 s^-1$ and $\mu=0.001 s^-1$ we were easily able to run 100,000 nodes plus 100 known root nodes on a single core netbook. 
+
+!!! series of experiments 10,1 1000,10 100000,100. test perceived network size \cite{arrg} and randomness
+
 \section{Conclusion}
 
 We presented a gossip algorithm which is simple, easy to implement and resilient to random failure and churn. The peer sampling service produced by this algorithm at each node generates independent, uniformly distributed peer samples when in the steady-state. This analysis is backed up both by formal verification using the PRISM model checker and by experimental results on a single machine. As far as the author is aware this is the first gossip algorithm to make \em any \em guarantees whatsoever about the behaviour of its peer sampling service.
@@ -419,7 +425,13 @@ The simulator is run with a confidence of 0.5 and an approximation of 0.01. The 
 
 \clearpage
 
-\bibliographystyle{plain}
-\bibliography{gossip}
+\section*{Appendix B: Reference implementation}
+
+The reference implementation contains two modules: ctmc.erl is a generic implementation of a CTMC and poppi.erl is a set of callbacks implementing the CTMC for a single node.
+
+\clearpage
+\code{../src/ctmc.erl}
+\clearpage
+\code{../src/poppi.erl}
 
 \end{document}
