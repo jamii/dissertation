@@ -1,7 +1,7 @@
 import commands
 import re
 
-result_re = re.compile(r"Result \(.*?\): (\S*)") 
+result_re = re.compile(r"Result ?\(?.*?\)?: (\S*)")
 
 class PrismError(Exception):
     def __init__(self, reason):
@@ -38,7 +38,7 @@ def sim(model, props):
         props_content = 'const int T;\n' + '\n'.join(map(str,props))
         file.write(props_content)
     output = commands.getoutput("prism model.sm props.pctl -sim -simconf 0.5 -simapprox 0.01 -const T=200")
-    results = output.split('-' * 43)[2:]
+    results = output.split('-' * 43)[1:]
     if len(results) != len(props):
         raise PrismError("Results mismatch\n\n" + output)
     return [scrape_result(result, prop) for (result, prop) in zip(results,props)]

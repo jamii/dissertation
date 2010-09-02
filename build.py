@@ -12,11 +12,13 @@ def main():
     write_model("dtmc_multiple", dtmc_multiple(3))
     write_model("dtmc_broken", dtmc_broken(3))
     write_model("dtmc_full", dtmc_full(3))
+    write_model("dtmc_full_error", dtmc_full_error(3))
     write_model("ctmc_single", ctmc_single(3))
     write_model("ctmc_multiple", ctmc_multiple(3))
     write_model("ctmc_broken", ctmc_broken(3))
     write_model("ctmc_full", ctmc_full(3))
     write_model("ctmc_full_error", ctmc_full_error(3))
+    write_model("ctmc_full_churn", ctmc_full_churn(3))
 
 if __name__ == '__main__':
     main()

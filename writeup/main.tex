@@ -319,11 +319,27 @@ S=? [node1=4] = 0.163...
 \end{lstlisting}
 \end{prismprop}
 
-We can see that a high failure rate increases the load on the known root nodes (in this case, node0). This damages the distribution of peer samples. However if we assume that most algorithms consuming the peer samples will not require the known root nodes then we can filter them out. The remaining peer samples are still guaranteed to be uniformly distributed.  
+We can see that a high failure rate increases the load on the known root nodes (in this case, node0). This damages the distribution of peer samples. However if we assume that most algorithms consuming the peer samples will not require the known root nodes then we can filter them out. The remaining peer samples are still guaranteed to be uniformly distributed.
 
-All the remaining tests pass when references to node0, the known root node, are removed. !!! dtmc
+All the remaining tests pass when references to node0, the known root node, are removed.
 
 Given that this algorithm does not require any special behaviour on leaving the network modelling node failure is very similar to modelling churn in the network. Allow each node in the network to turn off and on at some low rate $\epsilon$. We can model this by setting the node variable to $-1$. Messaging a node which in this state will of course fail. When the node turns on it will have lost its previous state and takes the default initial value again.
+
+\prismmodel{ctmc_full_churn}
+
+For a network with 5 nodes and $epsilon=0.01$ we find:
+
+\begin{prismprop}
+\begin{lstlisting}
+S=? [node1=0] = 0.152...
+S=? [node1=1] = 0.150...
+S=? [node1=2] = 0.065...
+S=? [node1=3] = 0.065...
+S=? [node1=4] = 0.065...
+\end{lstlisting}
+\end{prismprop}
+
+Again, falling back to the centralised algorithm increases load on the known root node. We also find that each node has a bias towards itself because it is never down whilst it is updating peer samples. Similarly to last time, we can still guarantee uniform peer samples if we filter out both the known root nodes and the node producing the peer samples.
 
 \section{Reference implementation}
 
