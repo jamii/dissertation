@@ -51,58 +51,62 @@ Gossip (or epidemic) algorithms are an important tool in many peer-to-peer syste
 
 It is argued in \cite{formal_analysis} that one of the main points in favour of using gossip algorithms to build distributed systems is that their simplicity makes them amenable to formal analysis. Despite this, no formal analysis of a peer sampling service has been produced. Many empirical studies have been conducted \cite{pss, formal_analysis}. In particular \cite{pss} demonstrates that many of the assumptions commonly made about the behaviour of peer sampling services do not hold in practice. It has also been noted \cite{pss, arrg, how_robust, emergent_gossip} that the behaviour of gossip algorithms is often highly sensitive to small changes. Finally, many gossip algorithms have turned out to be surprisingly susceptible to malicious attack \cite{poison, poison_buddycast, poison_mosquito, poison_antimosquito}. For these reasons it would be beneficial to have a stronger theoretical foundation to work from.
 
-In this dissertation we will present a peer sampling service about whose behaviour we can make strong theoretical guarantees. Section 2 discusses related work and presents Cyclon as a well-studied example of a gossip algorithm. Section 3 describes our general approach and introduces the necessary mathematics. Section 4 describes a centralised algorithm for providing independent, uniformly distributed peer samples. Section 5 discusses balancing the load of the centralised algorithm across multiple nodes. Section 6 introduces a fully distributed version of the previous algorithm. Section 7 investigates the algorithm's resilience to random failure and churn. Section 8 presents a reference implementation and test results. Finally, section 9 presents a conclusion and discusses future extensions.
+In this dissertation we will present a peer sampling service for which we can make strong theoretical guarantees. Section 2 covers background information. Section 3 describes our general approach and introduces the necessary mathematics. Section 4 describes a centralised algorithm for providing independent, uniformly distributed peer samples. Section 5 discusses balancing the load of the centralised algorithm across multiple nodes. Section 6 introduces a fully distributed version of the previous algorithm. Section 7 investigates the algorithm's resilience to random failure and churn. Section 8 presents a reference implementation and test results. Finally, section 9 presents a conclusion and discusses future extensions.
 
 \section{Background}
 
 Gossip algorithms have been used for a wide variety of tasks, including overlay construction \cite{Cyclon}, database replication \cite{database_replication}, failure detection \cite{failure_detection}, resource monitoring \cite{astrolabe}, distributed search/recommendation \cite{tribler}, reputation tracking \cite{reputation} and multicast messaging \cite{multicast}. 
 
-Recently there has been a flurry of work aimed at rigorous analysis of these algorithms. These can be divided roughly into two groups: those studying the design and theoretical limitations of gossip algorithms operating on a fixed overlay, typically in the context of wireless devices \cite{sensorish1, sensorish2}, and those attempting to model the behaviour of gossip algorithms on dynamic, unstructured overlays \cite{generic_theory, mean_field, gossip_prism, correctness, random_scheduling}. We are interested here in the latter approach. Despite the amount of attention it has turned out to be very difficult to analyse such algorithms. 
+Recently there has been a flurry of work aimed at rigorous analysis of these algorithms. These can be divided roughly into two groups: those studying the design and theoretical limitations of gossip algorithms operating on a fixed overlay, typically in the context of wireless devices \cite{sensorish1, sensorish2}, and those attempting to model the behaviour of gossip algorithms on dynamic, unstructured overlays \cite{generic_theory, mean_field, gossip_prism, correctness, random_scheduling}. We are interested here in the latter approach. 
+
+Despite the amount of attention it has turned out to be very difficult to analyse such algorithms. There have been a number of successes in modelling aspects of existing algorithms \cite{mean_field, gossip_prism, random_scheduling} but these have required a substantial amount of effort to demonstrate a small number of useful properties. We will instead produce an algorithm which is designed with ease of modelling in mind.
 
 \section{Approach}
 
 We will argue that there are several properties of existing gossip algorithms that makes them fundamentally difficult to analyse.
 
-The first of these is the use of fixed delays between actions at a single node. This causes complex scheduling of events across the network. In \cite{random_scheduling} the author begins by assuming that actions are scheduled randomly across the network. The resulting predictions are shown to be incorrect and the author is forced to move to a more complicated mathematical model. It is not difficult to arrange that events are scheduled uniformly at random across the network and this makes modelling the system much simpler.
+The first of these is the use of fixed delays between actions. This causes complex interleaving of actions between nodes. For example, in \cite{random_scheduling} the author begins modelling a simple gossip algorithm by making the simplifying assumption that view updates are scheduled randomly. The resulting predictions are shown to be incorrect and the author is forced to move to a more complicated mathematical model. We will demonstrate that it is possible to arrange that actions are scheduled uniformly at random between nodes and this makes modelling the system much simpler.
 
 The second is conflation of subsystems within an algorithm. Most gossip algorithms are presented as a single monolithic algorithm whereas it would be simpler to consider them as separate layers performing different functions. For example, in Cyclon and similar algorithms the network view and the peer sampling service are combined in a single data structure and both are updated simultaneously. It has been recognised \cite{pss, generic_theory} that the separation of these jobs is a natural simplification. Here we will concentrate entirely on the peer sampling service as a system providing a stream of random peer samples over time. Other subsystems, such as the network view, can be built as consumers of this stream.
 
-The third, and somewhat less defined, problem is that interactions between nodes are too complicated. We will show that the view shuffling used in most gossip algorithms is unnecessary - a peer sampling service can be produced without being aware of the network view at all.
+The third, and somewhat less well defined, problem is that interactions between nodes are too complicated. We will show that the view shuffling used in most gossip algorithms is unnecessary - a peer sampling service can be produced without being aware of the network view at all.
 
 Our inspiration for this algorithm comes from a natural example: radioactive decay. A group of radioactive atoms decays in a uniformly random order. That is, each atom has an equal probability to be the next atom to decay. This does not require any interaction between the atoms. It is a simple consequence of the exponential distribution of decay times.
 
-The exponential distribution is governed by the probability distribution function $ f(x)=\lambda e ^ { - \lambda x } $. This distribution has a number of interesting properties. It is memoryless: given $ E \sim Exp(\lambda) $ we can prove that $ P(E>a+b \;|\; E>a) = P(E>b) $. Given two such variables $ E_1 \sim Exp(\lambda) $ and $ E_2 \sim Exp(\mu) $ we can prove that $ min(E_1,E_2) \sim Exp(\lambda + \mu) $ and $ P(E_1 < E_2) = \lambda / (\mu + \lambda) $. These properties can be naturally extended to more than two variables. 
+The exponential distribution is governed by the probability distribution function $ f(x)=\lambda e ^ { - \lambda x } $. This distribution has a number of interesting properties. It is memoryless: given $ E \sim \text{Exp}(\lambda) $ we can prove that $ P(E>a+b \;|\; E>a) = P(E>b) $. Given two such variables $ E_1 \sim \text{Exp}(\lambda) $ and $ E_2 \sim \text{Exp}(\mu) $ we can prove that $ \text{min}(E_1,E_2) \sim \text{Exp}(\lambda + \mu) $ and $ P(E_1 < E_2) = \lambda / (\mu + \lambda) $. These properties can be recursively extended to more than two variables. 
 
 We can see now why atoms decay randomly. Since they all have the same distribution they all have the same probability to be the first to decay. Once one atom has decayed the memoryless property means that we can 'reset' all the decay times.
 
-Atoms can only decay once. If we allow repeated decay we obtain a Poisson process. A Poisson process is a sequence of exponential decay times. More formally, given decay times $S_i \sim Exp(\lambda), \; i>0 $ the Poisson process with rate $ \lambda $ is the sequence $ T_i = \sum_{k=0}^i S_k $. It is often useful to associate a set of random events $E_i$ with the process, so that the event $E_i$ is considered to have occurred at time $T_i$. 
+Atoms can only decay once. If we allow repeated decay we obtain a Poisson process. A Poisson process is a sequence of exponential decay times. More formally, given decay times $S_i \sim \text{Exp}(\lambda) $, the Poisson process with rate $ \lambda $ is the sequence $ T_i = \sum_{k=0}^i S_k $. It is often useful to associate a set of random events $E_i$ with the process, so that the event $E_i$ is considered to have occurred at time $T_i$. 
 
-Like the exponential distribution this process is memoryless - it looks the same starting from any point. It also has two properties which we will use repeatedly. The merging property governs interleaving two different Poisson processes in a single process. The thinning property governs splitting a single Poisson process into two independent processes.
+Like the exponential distribution this process is memoryless - it looks the same starting from any point. It also has two properties which we will use repeatedly. The merging property governs interleaving two different Poisson processes into a single process. The thinning property governs splitting a single Poisson process into two independent processes.
 
 \newtheorem*{merging}{Merging}
 \begin{merging}
-Given independent Poisson processes $U=\{U_i | i \geq 0\}$ and $V=\{V_i | i \geq 0\}$ with rates $\lambda$ and $\mu$ respectively. WLOG let $U_0 < V_0$. Define the merging \;$T = merge(U,V)$\; of these processes recursively as follows: $T_0 = U_0$, $\{T_i \;|\; i>0\} = merge(\{U_i \;|\; i>0\}, V)$. Then $T$ is a Poisson process with rate $\lambda + \mu$. Define $E_i$ to be $0$ if $T_i$ was drawn from $U$ and $1$ otherwise. Then the random variables $\{E_i \;|\; i \geq 0\}$ are independent and $E_i \sim Bin(\lambda / (\lambda + \mu))$. 
+Let $U=\{U_i | i \geq 0\}$ and $V=\{V_i | i \geq 0\}$ be independent Poisson processes with rates $\lambda$ and $\mu$ respectively. WLOG let $U_0 < V_0$. Define the merging \;$T = merge(U,V)$\; of these processes recursively as follows: $T_0 = U_0$, $\{T_i \;|\; i>0\} = merge(\{U_i \;|\; i>0\}, V)$. Then $T$ is a Poisson process with rate $\lambda + \mu$. Define $E_i$ to be $0$ if $T_i$ was drawn from $U$ and $1$ otherwise. Then the random variables $\{E_i \;|\; i \geq 0\}$ are independent and $E_i \sim \text{Bin}(\lambda / (\lambda + \mu))$. 
 \end{merging}
  
 \newtheorem*{thinning}{Thinning}
 \begin{thinning}
-Given a Poisson process $T$ with rate $\lambda$ and a set $E_i$ of independent random binary variables $E_i ~ Bin(p)$. Define $U = \{T_i \;|\; E_i = 0, \; i \geq 0\}$ and $V = \{T_i \;|\; E_i = 1, \; i \geq 0\}$. Then $U$ and $V$ are independent Poisson process with rates $\lambda p$ and $\lambda (1-p)$ respectively.
+Let $T$ be a Poisson process with rate $\lambda$. Given a set $E_i$ of independent random binary variables $E_i \sim \text{Bin}(p)$, define $U = \{T_i \;|\; E_i = 0, \; i \geq 0\}$ and $V = \{T_i \;|\; E_i = 1, \; i \geq 0\}$. Then $U$ and $V$ are independent Poisson process with rates $\lambda p$ and $\lambda (1-p)$ respectively.
 \end{thinning}
 
-Both the merging and thinning properties can be extended in the natural way to deal with more than two Poisson processes.
+Both the merging and thinning properties can be applied recursively to deal with more than two Poisson processes.
 
 \section{Implementing a uniform PSS}
 
+We can apply these ideas to a simple, centralised peer sampling service. Suppose we have a network consisting of $n$ nodes.
+
 Pick some root node $R$, whose address is known to all other nodes. Every other node behaves as an independent Poisson process sending messages to the root node at a rate $\lambda$. Let $R_i$ be the sender of the $i$th message to arrive at the root node. By the merging property the sequence $R_i$ forms a possion process of rate $n \lambda$ and each $R_i$ is an independent uniform random choice from the set of all nodes.
 
-On receiving each message $R_i$, the root node sends the address of $R_{i-1}$ to $R_i$. Let $N_i$ be the $i$th message to arrive at node $N$ from the root $R$. Let $T^N_i$ be the index in $R$ of this message ie
+On receiving each message $R_i$, the root node will send the address of $R_{i-1}$ to $R_i$ (the message $R_0$ is ignored). Let $N_i$ be the $i$th such message to arrive at node $N$ from the root $R$. Let $T^N_i$ be the index in $R$ of this message i.e.
 
 \begin{gather*}
 S_{T^N_i} = N \\
 S_{T^N_i-1} = N_i \\
 \end{gather*}
 
-For each node $N$ the sequence of addresses $N_i$ will form the peer samples for $N$.
+For each node $N$ we use the sequence of addresses $N_i$ as the peer samples for $N$.
 
 \begin{thm}For each node $N$ the peer samples $N_i$ are independent\end{thm}
 
@@ -118,7 +122,7 @@ For any node $M$
 \begin{thm}For each node N the peer samples $N_i, \; i>0$ are uniformly distributed over the set of all nodes (note that $N_0$ is not uniformly distributed since it can only be equal to $N$ when $S_0 = S_1 = N$)\end{thm}
 
 \begin{proof}
-Consider the peer sampling $N_i$. Define $K = T^N_i - T^N_{i-1}$.
+Consider the peer sample $N_i$. Define $K = T^N_i - T^N_{i-1}$.
 
 \begin{align*}
 P(&N_i = N) \\
@@ -135,9 +139,9 @@ P(&N_i = M) \\
 & = \sum_{k>0} P(K=k) P(S_{T^N_i-1}=M | K=k) \\
 & = \sum_{k>1} P(K=k) P(S_{T^N_i-1}=M | K=k) \\
 & \mathins{ because $P(S_{T^N_i-1}=M | K=1) = 0$} \\
-& = \sum_{k>1} P(K=k) P(S_{T^N_i-1}=M | K=k, S_{T^N_i-1} /= N) \\
+& = \sum_{k>1} P(K=k) P(S_{T^N_i-1}=M | K=k, S_{T^N_i-1} \neq N) \\
 & \mathins{ because $T^N_{i-1} = T^N_i - K < T^N_i-1 < T^N_i$} \\
-& = \sum_{k>1} P(K=k) (1 / n-1) \\
+& = \sum_{k>1} P(K=k) (\frac{1}{n-1}) \\
 & \mathins{ because $S_i$ are independent} \\
 & = \frac{1}{n-1} \sum_{k>1} P(K=k) \\
 & = \frac{1}{n-1} P(K>1) \\
@@ -151,9 +155,9 @@ The system as a whole forms a continuous-time Markov chain (CTMC). Using the PRI
 
 \prismmodel{ctmc_single}
 
-For the sake of clarity, in this section we will only present example models and describe the properties which need to be tested. More complete details on model generation and the methods for testing various properties are described in Appendix A.
+For the sake of clarity, in this section we will only present example models for networks with 3 nodes and describe the properties which need to be tested. More complete details on model generation and the methods for testing various properties are described in Appendix A.
 
-In the above model the variable 'root' represents the last node to send a message to the root node and the variables 'node0', 'node1' and 'node2' represent the last peer sampling at their respective nodes.
+In the above model the variable 'root' represents the last node to send a message to the root node and the variables 'node0', 'node1' and 'node2' represent the last peer sample at their respective nodes.
 
 Suppose we wanted to test the claim that each $N_i$ is uniformly distributed for $i>0$. This turns out to be very difficult in this model. We could test $P(N_i = M)$ for any fixed point in time and check that the value is the same for each node $M$:
 
@@ -175,13 +179,13 @@ S=? [ node0=2 ]
 \end{lstlisting}
 \end{prismprop}
 
-While these are useful properties to have neither of them are quite equivalent to saying that $N_i$ are uniformly distributed. The problem is that each $N_i$ is associated with a transition whereas the properties above are associated with points in time. It is awkward to specify PRISM properties relating to transitions when using a CTMC model. One workaround is to use transition rewards but this brings its own problems. Transition rewards have no meaning in the steady-state and cannot be calculated by the PRISM simulator, which makes working with large models impossible.
+While these are useful properties to have neither of them are quite equivalent to saying that $N_i$ are uniformly distributed. The problem is that each $N_i$ is associated with a transition whereas the properties above are associated with points in time. It is awkward to specify PRISM properties relating to transitions when using a CTMC model. A possible workaround is to use transition rewards but this brings its own problems. Transition rewards have no meaning in the steady-state and cannot be calculated by the PRISM simulator, which makes working with larger models impossible.
 
-A simpler solution is to ignore transition times altogether and work with the jump process - the discrete-time Markov chain corresponding to the transitions of the CTMC. The translation is straightforward:
+A simpler solution is to ignore transition times altogether and work with the jump process - the discrete-time Markov chain (DTMC) corresponding to the transitions of the CTMC. The translation is straightforward:
 
 \prismmodel{dtmc_single}
 
-Notice that the choice of which node will next send a message to the root has been made explicit. Also the 'Past' module has been added, which tracks the last value of each variable. This makes it easy to identify peer samples. For example, if next\_past is 0 then node0 is a new peer sampling, replacing the previous sampling node0\_past.
+Notice that the choice of which node will next send a message to the root has been made explicit. Also the 'Past' module has been added, which tracks the last value of each variable. This makes it easy to identify peer samples. For example, if next\_past is 0 then node0 is a new peer sample, replacing the previous sample node0\_past.
 
 Now we can directly test that the distribution of peer samples at a given node is uniform in the steady-state. The following must all be equal:
 
@@ -193,7 +197,7 @@ S=? [ next_past=0 & node0=2 ]
 \end{lstlisting}
 \end{prismprop}
 
-Similarly, we can test that each peer sampling is independent of the previous peer sampling by checking that the following are equal:
+Similarly, we can test that each peer sample is independent of the previous peer sample by checking that the following are equal:
 
 \begin{prismprop}
 \begin{lstlisting}
@@ -211,7 +215,7 @@ S=? [ next_past=0 & node0=2 & node_past=2 ]
 \end{lstlisting}
 \end{prismprop}
 
-For good measure, we can check in both models that the latest peer samples at each node are pairwise independent by testing:
+For good measure, we can check in both models that the latest peer samples at any two given nodes are independent by testing e.g.:
 
 \begin{prismprop}
 \begin{lstlisting}
@@ -233,17 +237,17 @@ This algorithm is easy to reason about and provides strong guarantees about the 
 
 \section{Spreading the load}
 
-A simple aproach to improving the previous algorithm is to use more than one root node. We can replace the single root node with a set of root nodes $R_0 .. R_k$ which are known to every node. Each of the new root nodes behave identically to the root node in the previous algorithm. For each message the sending node chooses a root node uniformly at random to contact. 
+A simple aproach to improving the previous algorithm is to use more than one root node. We can replace the single root node with a set of root nodes $R^0 .. R^k$ which are known to every node. Each of the new root nodes behave identically to the root node in the previous algorithm. For each message the sending node will choose a root node uniformly at random to contact. 
 
 Intuitively, this has the same steady-state properties as the previous algorithm. The argument is as follows: By the thinning property we can consider the messages arriving at each root node to be independent Poisson processes each with rate $n \lambda / k$. Then each node receives $k$ independent peer sampling processes (one from each root node) each with rate $\lambda / k$ and with peer samples which are independent and uniformly distributed as proved for the previous algorithm. By the merging property we can combine these peer sampling processes to form a single process with the same properties. 
 
-One change we should be careful to note is that in the previous algorithm the first peer sampling $N_0$ was not uniformly distributed. Since we now have $k$ of these processes being interleaved we cannot guarantee when the first peer sampling from each node will occur. We can guarantee that in the worst case each node has to send two messages to each root node before all future peer samples at that node will be uniformly distributed (the first message might be the first message at that node, in which case it will not generate a peer sampling).
+One change we should be careful to note is that in the previous algorithm the first peer sample $N_0$ was not uniformly distributed. Since we now have $k$ of these processes being interleaved we cannot guarantee when the first peer sample from each node will occur. We can guarantee that in the worst case each node has to send two messages to each root node before all future peer samples at that node will be uniformly distributed (the first message might be the first message at that node, in which case it will not generate a peer sample).
 Define $I_N$ to be the point at which at least two messages have been sent from $N$ to each peer node.
 
 \begin{thm}$E(I_N) \leq \frac{2kn}{n-k+1}$\end{thm}  
 
 \begin{proof}
-Define $J^k_N$ to be the point at which node $N$ has sent at least one message to k different nodes.
+Define $J^k_N$ to be the point at which node $N$ has sent at least one message to each of k different root nodes.
 
 \begin{align*}
 E(J^k_N) &= E(J^k_N + (J^{k-1}_N - J^{k-1}_N) + ... + (J^1_N - J^1_N)) \\
@@ -254,7 +258,7 @@ E(I_N) & \;\leq\; 2 E(J^k_N) \;\leq\; 2k\frac{n}{n-k+1} \\
 \end{align*}
 \end{proof}
 
-Note though that before $I_N$ is reached the peer samples at $N$ will still be uniformly distributed across all nodes except $N$ and the expected number of messages sent before the first peer sample is generated is only $\frac{k}{n}$.
+Note that even before $I_N$ is reached the peer samples at $N$ will still be uniformly distributed across all nodes except $N$ and the expected number of messages sent before the first peer sample is generated is only $\frac{k}{n}$.
 
 We can model this new algorithm in PRISM:
 
@@ -268,9 +272,9 @@ We can reuse all the properties tested for the original algorithm without change
 
 \section{Inside out}
 
-Adding more root nodes spreads out the load and makes the network more resilient but we still have a predetermined set of root nodes to which we cannot add or remove nodes. Examining the proof above, the only reason that the set of root nodes needs to be known is in order to make a random sampling from it. These samples are required to be uniformly distributed and independent. If we had a peer sampling service for the root nodes we would not need to know their addresses in advance.
+Adding more root nodes spreads out the load and makes the network more resilient but this still leaves us with a predetermined set of root nodes to which we cannot add or remove nodes. Examining the proof above, the only reason that the set of root nodes needs to be known is in order to make a random choice from it. These choices are required to be uniformly distributed and independent. If we had a peer sampling service for the root nodes we would not need to know their addresses in advance and we could add and remove root nodes.
 
-The solution is to feed the output of the algorithm back in to itself. Each node can also act as a root node. The system is bootstrapped from a known set of root nodes so that each node has generated at least one peer sampling. Then these independent uniform peer samples are used to choose which node to contact next to receive a new peer sampling.
+The solution is to feed the output of the algorithm back in to itself. Each node can also act as a root node. The system is bootstrapped from a known set of root nodes so that each node has generated at least one peer sample. Then these independent uniform peer samples are used to choose which node to contact next to receive a new peer sample.
 
 This seems intuitively correct but there are a number of subtle details that have been glossed over. For example, is the output of the peer sampling service independent of the input choices? Will uniform sampling still hold if some nodes start acting as root nodes before others have bootstrapped? We can check our intuition with PRISM.
 
@@ -322,9 +326,9 @@ Reassuringly, all of our tests now pass and we have a simple, distributed peer s
 
 \section{Dealing with failure}
 
-We will consider two forms of failure: dropping messages and crashing nodes. In both cases we will respond to failure by falling back to the centralised algorithm i.e. setting the new peer sample to the address of one of the known root nodes. This is a naive solution but it has the advantage of being simple. 
+We will consider two forms of failure: dropping messages and crashing nodes. In both cases we will respond to failure by falling back to the centralised algorithm i.e. setting the new peer sample to the address of one of the known root nodes. This is a naive strategy but it has the advantage of being simple. 
 
-We can also model random failure at the message level. Assume that every message has a probability p of being dropped, independently of every other message. Each transition in our algorithm requires two messages - one message to request a sample from another node and one message for the reply. If either of these is dropped the sending node will timeout while waiting for the reply. We will assume that the timeout is small enough relative to $1/\lambda$ that we can consider the failure to be an instantaneous transition.
+We will start by modelling message dropping. Assume that every message has a probability p of being dropped, independently of every other message. Each transition in our algorithm requires two messages - one message to request a sample from another node and one message for the reply. If either of these is dropped the sending node will timeout while waiting for the reply. We will assume that the timeout is small enough relative to $1/\lambda$ that we can consider the failure to be an instantaneous transition.
 
 \prismmodel{ctmc_full_error}
 
@@ -340,15 +344,13 @@ S=? [node1=4] = 0.163...
 \end{lstlisting}
 \end{prismprop}
 
-We can see that a high failure rate increases the load on the known root nodes (in this case, node0). This damages the distribution of peer samples. However if we assume that most algorithms consuming the peer samples will not require the known root nodes then we can filter them out. The remaining peer samples are still guaranteed to be uniformly distributed.
+We can see that a high failure rate increases the load on the known root nodes (in this case, node0). This damages the distribution of peer samples. However if we assume that most algorithms consuming the peer samples will not require the known root nodes then we can filter them out. The remaining peer samples are still guaranteed to be uniformly distributed. All the remaining tests pass when references to node0, the known root node, are removed.
 
-All the remaining tests pass when references to node0, the known root node, are removed.
-
-Given that this algorithm does not require any special behaviour on leaving the network, modelling node failure is very similar to modelling churn in the network. Allow each node in the network to turn off and on at some low rate $\epsilon$. We can model this by setting the node variable to $-1$. Sending a message to a node which is in this state will of course fail. When the node turns on it will have lost its previous state and takes the default initial value again.
+Next we need to consider crashing nodes. Given that this algorithm does not require any special behaviour on leaving the network, modelling node failure is very similar to modelling churn in the network. Allow each node in the network to turn off and on at some low rate $\epsilon$. We will represent this by setting the node variable to $-1$. Sending a message to a node which is in this state will of course fail. When the node turns on it will have lost its previous state and will take the default initial value again.
 
 \prismmodel{ctmc_full_churn}
 
-For a network with 5 nodes and $epsilon=0.01$ we find:
+For a network with 5 nodes and $\epsilon=0.01$ we find:
 
 \begin{prismprop}
 \begin{lstlisting}
@@ -360,38 +362,41 @@ S=? [node1=4] = 0.065...
 \end{lstlisting}
 \end{prismprop}
 
-Again, falling back to the centralised algorithm increases load on the known root node. We also find that each node has a bias towards itself because it is never down while it is updating peer samples. Similarly to last time, we can still guarantee uniform peer samples if we filter out both the known root nodes and the node producing the peer samples.
+Again, falling back to the centralised algorithm increases load on the known root node. We also find that each node has a bias towards itself because it can never fail to contact itself. Similarly to the last model, we can still guarantee uniform peer samples if we filter out both the known root nodes and the node producing the peer samples.
 
 \section{Reference implementation}
 
-Included in Appendix B is a simple reference implementation in erlang, a high-level interpreted language. The simplicity of the algorithm is reflected in the fact that the entire implementation is under 200 lines of code, including a generic implementation of continuous-time Markov chains. Our implementation uses the built-in erlang messaging system. Replacing this with raw UDP would take only a few more lines since the message format is so simple. 
+Included in Appendix B is a simple reference implementation in erlang, a high-level interpreted language. The simplicity of the algorithm is reflected in the fact that the entire implementation is under 200 lines of code, including a generic implementation of continuous-time Markov chains. 
 
-We set $\lambda=1.0 s^-1$ and $\mu=0.01 s^-1$ and performed two tests with 1000 nodes / 10 known root nodes and 10 nodes / 1 known root node. For each test we recorded the peer samplings produced by a single peer and performed chi-squared tests for both uniform distribution and pairwise independence of the samples. The powers returned from the tests were:
+Our implementation uses the built-in erlang messaging system. Replacing this with raw UDP would take only a few more lines since the message format is so simple. 
+
+We set $\lambda=1.00 s^{-1}$ and $\mu=0.01 s^{-1}$ and performed two tests: the first with 10 nodes and 1 known root nodes and the second with 1000 nodes and 10 known root node. For each test we recorded the peer samples produced by a single peer and performed chi-squared tests for both uniform distribution and pairwise independence of the samples. The powers returned from the tests were:
 
 \begin{prismprop}
 \begin{lstlisting}
 10 nodes / 1 known root (3,000 samples)
-\;\;\;\; uniform distribution: 0.177e-01
-\;\;\;\; pairwise independence: 0.322e-01
+  uniform distribution: 0.177e-01
+  pairwise independence: 0.322e-01
+
 1000 nodes / 10 known roots (400,000 samples)
-\;\;\;\; uniform distribution: 0.478e-04
-\;\;\;\; pairwise independence: 1.0
+  uniform distribution: 0.478e-04
+  pairwise independence: 1.0
 \end{lstlisting}
 \end{prismprop}
 
-The failure for the last independence test can be attributed to the fact that we did not obtain the required number of samples to avoid a type II error.
+In order to perform the uniform distribution test it is recommended that we have at least ten times as many samples as there are nodes in the network and for the independence test at least ten times the square of the number of nodes. The failure for the last independence test can be attributed to the fact that we did not obtain the required number of samples.
 
-With $\lambda=0.1 s^-1$ and $\mu=0.001 s^-1$ we were able to run 100,000 nodes plus 100 known root nodes on a single-core netbook. However, in order to obtain enough results to perform the uniform distribution test it is recommended that we have at least ten times as many samples as there are nodes in the network and for the independence test at least ten times the square of the number of nodes. In this configuration, gathering this number of samples would longer than a year. Instead we pooled all the samples in the network to perform the tests.
+With $\lambda=0.1 s^-1$ and $\mu=0.001 s^-1$ we were able to run 100,000 nodes plus 100 known root nodes on a single-core netbook. However, in this configuration gathering this number of samples would take longer than a year. Instead we pooled all the samples in the network to perform the tests.
 
 \begin{prismprop}
 \begin{lstlisting}
 100,000 nodes / 100 known roots (10,000,000 samples)
-\;\;\;\; uniform distribution: 0.00
-\;\;\;\; pairwise independence: 0.00
+  uniform distribution: 0.00
+  pairwise independence: 0.00
 \end{lstlisting}
 \end{prismprop}
 
-We had a large enough number of samples which were sufficiently well distributed that the power for these two tests fell within the bounds of numerical error.
+This gave us a large enough number of samples which were sufficiently well distributed that the power for these two tests fell within the bounds of numerical error.
 
 \section{Conclusion}
 
@@ -401,11 +406,11 @@ This algorithm has so far only been tested on a small number of machines. Given 
 
 We have proved that the samples at each node are independent and we have demonstrated in PRISM that the most recent samples for any pair of nodes are independent. It seems likely that all the peer samples across all nodes are independent. The proof of this, however, has been elusive because the peer samples taken together with their ordering in time are \em not \em independent (for example if node7 was the last node to produce a peer sample then the next sample is more likely to be 7). If we had chosen a notation that was more easily divorced from the timings this independence may have been easier to prove.
 
-In unreliable networks, extra load is placed on the root nodes proportional to the rate of message failure. This is handled naively in the current algorithm for the sake of easy modelling. Most gossip algorithms in large scale networks cache previously seen nodes and reuse these addresses in the case of failure. It would be useful to model the tradeoff between increased robustness and the uniform distribution of peer samples when using this strategy.
+In unreliable networks, extra load is placed on the root nodes proportional to the rate of message failure. This is due to the naive error-handling strategy used in the current algorithm. Most gossip algorithms in large scale networks cache previously seen nodes and reuse these addresses in the case of failure. It would be useful to model the tradeoff between increased robustness and the uniform distribution of peer samples when using this strategy.
 
-The use of frequent small messages to lots of different peers makes it difficult to perform NAT traversal efficiently. Large scale uses of gossip algorithms have often found that NAT negotiation is essential \cite{arrg, tribler} - reliance on UPnP or similar is ineffective. One solution might be to reuse the root nodes as ICE servers for nodes which are known to be unable to open ports to the outside world.
+Large scale uses of gossip algorithms have often found that NAT negotiation is essential \cite{arrg, tribler} and that reliance on UPnP or similar is ineffective. The use in nthis algorithm of small and frequent messages to lots of different peers makes it difficult to perform NAT negotiation efficiently. A possible solution might be to reuse the root nodes as ICE servers for nodes which are known to be unable to open ports to the outside world.
 
-This algorithm is suitable for use with trusted peers, for example within a data centre. Without further work it is not suitable for use with untrusted peers as it is susceptible to poisoning or other malicious behaviour. Future work could include identifying and managing malicious peers. In particular, it should be possible to rate-limit malicious peers without damaging the useful properties of the peer sampling service. This would go a long way towards preventing poisoning. Given the simplicity of this algorithm it may even be possible to establish bounds on the influence wielded by any given peer and thus show that specific class of attacks are infeasible. 
+This algorithm is suitable for use with trusted peers, for example within a data centre. Without further work it is not suitable for use with untrusted peers as it is susceptible to poisoning or other malicious behaviour. Future work could include identifying and managing malicious peers. In particular, it should be possible to rate-limit malicious peers without damaging the useful properties of the peer sampling service. This would go a long way towards preventing poisoning. Given the simplicity of this algorithm it may even be possible to establish bounds on the influence wielded by any given peer and thus show that specific class of attacks require an impractical amount of resources.
 
 \bibliographystyle{plain}
 \bibliography{gossip}
@@ -415,7 +420,7 @@ This algorithm is suitable for use with trusted peers, for example within a data
 
 The PRISM models and properties in this dissertation are generated by a set of scripts in order to allow models with any number of nodes. A simple scripting harness was written for PRISM to allow automated testing. The default test suite tests each model with 3, 5, 10 and 20 nodes and is run as a post-commit on the darcs repository hosting this dissertation. Models with up to 100 nodes have also been tested in the same way but these test take too long to be run on every commit. 
 
-For models with up to 5 nodes the tests use model checking with steady-state properties. Each property is tested with every valid combination of nodes. For larger models the simulator is used. Each property is tested with only a few different nodes and we rely on the symmetry of the model. The simulator does not support testing steady-state properties so the same properties are expressed as instaneous rewards and tested at a range of times. Since the models converge quickly to the steady-state this has proved effective. For example, for the property:
+For models with up to 5 nodes the tests use model checking with steady-state properties. Each property is tested with every valid combination of nodes. For larger models the simulator is used. Each property is tested with only a few different nodes and we rely on the symmetry of the model to ensure that the property holds for all node. The simulator does not support testing steady-state properties so the same properties are expressed as instaneous rewards and tested at a range of times. For example, for the property:
 
 \begin{prismprop}
 \begin{lstlisting}
@@ -441,9 +446,17 @@ R{"node0_0"}=? [ I=T ]
 \end{lstlisting}
 \end{prismprop}
 
+Since the models converge quickly to the steady-state this has proved effective. 
+
 The simulator is run with a confidence of 0.5 and an approximation of 0.01. The results are tested for equality with a tolerance of 0.02 between the minimum and maximum value. We found in practice that the actual confidence is well within the specified bounds and none of these tests fell outside the tolerance.
 
-The use of PRISM was essential in the experimental phases of this work. The ability to quickly test properties and iron out problems before attempting proofs saved much time and effort. This was invaluables for the problems in section 6 especially, where PRISM was used to detect subtle dependencies between peer samples at different nodes. However there were a number of minor difficulties with using PRISM. The main problem was the model description language, which lacks abstraction capabilities. As a result we relied on a series of scripts to generate model descriptions, which was error-prone. The lack of abstraction also makes it difficult to combine different modifications, such as churn and message failure, which would have been fairly trivial in a full programming language. The availability of arrays in the PRISM language would have greatly simplified the models in this dissertation. There are a number of examples of embedding probabilistic description languages into existing programming languages \cite{pfp, ocaml_cont}. It could be worth investigating the feasibility of connecting one of these languages directly to the PRISM engine. Another issue that arose was that the steady-state operator S=? can only handle binary properties when it seems it should be possible to handle any quantitive property. Instead, we tracked the past value of each variable explicitly in order to handle such properties. Finally, the generation of jump processes by hand is error-prone even for small models. PRISM could be extended to handle this translation automatically.
+The use of PRISM was essential in the experimental phases of this work. The ability to quickly test properties and iron out problems before attempting proofs saved much time and effort. This was invaluable for the problems in section 6 especially, where PRISM was used to detect subtle dependencies between peer samples at different nodes. 
+
+We encountered a number of minor difficulties when using PRISM. The main obstacle was the model description language, which has few mechanisms for abstraction. As a result we relied on a series of scripts to generate model descriptions for different network sizes. The length of the generated descriptions was quadratic in the network size which made checking the correctness difficult. The availability of arrays in the PRISM language would have greatly simplified the models in this dissertation. The lack of abstraction also makes it difficult to combine different modifications, such as churn and message failure, which would have been fairly trivial in a full programming language. There are a number of examples of embedding probabilistic description languages into existing programming languages \cite{pfp, ocaml_cont}. It could be worth investigating the feasibility of connecting one of these languages directly to the PRISM engine. 
+
+Another issue that arose was that the steady-state operator S=? can only handle binary properties when it seems it should be possible to handle any quantitive property. Instead, we tracked the past value of each variable explicitly in order to handle independence tests. 
+
+Finally, the generation of jump processes by hand is error-prone even for small models. PRISM could be extended to handle this translation automatically.
 
 \clearpage
 
