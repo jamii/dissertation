@@ -1,6 +1,6 @@
 -module(poppi).
 
--export([start/0, start/1, start_experiment/2]).
+-export([start/0, start/1, start_experiment/3]).
 
 -behaviour(ctmc).
 -export([init/1, events/1, handle_event/2, handle_call/2]).
@@ -24,9 +24,14 @@ start(KnownRoots, Log) ->
     Poppi = #poppi{node=none, root=none, known_roots=KnownRoots, log=Log},
     ctmc:start(?MODULE, [Poppi]).
 
-start_experiment(N, K) ->
-    KnownRoots = [Root || {ok, Root} <- [start() ||  _ <- lists:seq(1,K)]],
-    _Nodes = [Node || {ok, Node} <- [start(KnownRoots) || _ <- lists:seq(1,N-1)]],
+start_experiment(N, K, Sampling) ->
+    Log = 
+	case Sampling of
+	    one -> fun (_) -> ok end;
+	    all -> fun log_sample/1
+	end,
+    KnownRoots = [Root || {ok, Root} <- [start([], Log) ||  _ <- lists:seq(1,K)]],
+    _Nodes = [Node || {ok, Node} <- [start(KnownRoots, Log) || _ <- lists:seq(1,N-1)]],
     {ok, _ExperimentNode} = start(KnownRoots, fun log_sample/1).
 
 % ctmc callbacks

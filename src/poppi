@@ -1,3 +1,3 @@
 #!/bin/bash
 echo "poppi:start_experiment($1,$2)"
-erl -smp enable +P 200000 +S 8:8 -noshell -eval "poppi:start_experiment($1,$2)"
+erl -smp enable +P 200000 +S 8:8 -noshell -eval "poppi:start_experiment($1,$2,all)" 
